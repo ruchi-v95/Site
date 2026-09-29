@@ -1,0 +1,247 @@
+// 오늘 뭐 먹지: 카테고리/상황 버튼으로 카카오 장소 검색(무료)만 사용한다. 유료 AI는 쓰지 않는다.
+(() => {
+  // 음식 종류 버튼: 카카오 음식점 카테고리 이름으로 그대로 검색
+  const CATEGORIES = {
+    한식: "한식", 중식: "중식", 일식: "일식", 양식: "양식", 분식: "분식",
+    치킨: "치킨", 고기: "고기", 아시안: "아시아음식", 패스트푸드: "패스트푸드",
+  };
+  // 상황 버튼: 어울리는 메뉴 이름 목록에서 하나를 뽑아 검색
+  const SITUATIONS = {
+    점심: ["국밥", "김치찌개", "돈까스", "제육볶음", "칼국수", "냉면", "비빔밥", "쌀국수", "초밥", "햄버거", "덮밥", "순두부찌개"],
+    저녁: ["삼겹살", "치킨", "파스타", "마라탕", "족발", "곱창", "부대찌개", "감자탕", "초밥", "갈비", "양꼬치"],
+    야식: ["치킨", "떡볶이", "족발", "보쌈", "피자", "라멘", "닭발", "순대"],
+    혼밥: ["국밥", "라멘", "돈까스", "김밥", "햄버거", "덮밥", "우동", "쌀국수"],
+    국물: ["국밥", "칼국수", "마라탕", "짬뽕", "쌀국수", "부대찌개", "김치찌개", "감자탕", "순두부찌개"],
+    가볍게: ["샐러드", "샌드위치", "김밥", "포케", "쌀국수", "우동"],
+  };
+  const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게", "아무거나"];
+  const RECENT_KEY = "wmm.recent";
+  const RECENT_MAX = 5;
+  const MAX_PAGE = 3;
+
+  const $ = (s) => document.querySelector(s);
+  const app = $("#app"), chat = $("#chat"), form = $("#ask"), input = $("#q"), notice = $("#notice");
+
+  let loc = null;      // {x: 경도, y: 위도}
+  let current = null;  // {queries, mode: "category"|"food", shown:Set, used:Set, pages:Map}
+
+  // ---------- 저장소 (실패해도 동작) ----------
+  const recent = {
+    get() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } },
+    add(v) {
+      try {
+        const list = [v, ...this.get().filter((f) => f !== v)].slice(0, RECENT_MAX);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+      } catch {}
+    },
+  };
+
+  // ---------- 화면 ----------
+  function timeSlot(d = new Date()) {
+    const h = d.getHours();
+    if (h >= 5 && h < 15) return "점심";
+    if (h >= 15 && h < 21) return "저녁";
+    return "야식";
+  }
+
+  function renderChips() {
+    const slot = timeSlot();
+    const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
+    fillChips($("#chips-cat"), Object.keys(CATEGORIES), (c) => ask(c, { category: c }));
+    fillChips($("#chips-sit"), situations, (c) => ask(c, { situation: c }));
+  }
+
+  function fillChips(el, labels, onPick) {
+    el.innerHTML = "";
+    for (const c of labels) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = c;
+      b.onclick = () => onPick(c);
+      el.appendChild(b);
+    }
+  }
+
+  function bubble(text, who = "bot", extra = "") {
+    const el = document.createElement("div");
+    el.className = `msg ${who} ${extra}`.trim();
+    el.textContent = text;
+    chat.appendChild(el);
+    el.scrollIntoView({ behavior: "smooth", block: "end" });
+    return el;
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function lastCategory(p) {
+    return (p.category_name || "").split(" > ").slice(-1)[0];
+  }
+
+  function renderPick(label, p) {
+    const el = document.createElement("article");
+    el.className = "pick";
+    const cat = lastCategory(p);
+    const dist = p.distance ? `${walkMinutes(p.distance)} · ${Number(p.distance).toLocaleString()}m` : "";
+    const route = `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
+    el.innerHTML = `
+      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}</p>
+      <h2>${esc(p.place_name)}</h2>
+      ${dist ? `<p class="meta">${esc(dist)}${cat && cat !== label ? " · " + esc(cat) : ""}</p>` : ""}
+      <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
+      ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
+      <div class="actions">
+        <a class="primary" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
+        <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
+        <button type="button" class="wide" data-again>다시 뽑기</button>
+      </div>`;
+    el.querySelector("[data-again]").onclick = () => pick();
+    chat.appendChild(el);
+    el.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  function walkMinutes(m) {
+    return `도보 ${Math.max(1, Math.round(Number(m) / 67))}분`; // 약 4km/h
+  }
+
+  // ---------- 위치 ----------
+  function getLocation() {
+    if (loc) return Promise.resolve(loc);
+    return new Promise((resolve) => {
+      const fallback = () => {
+        loc = { x: 127.0276, y: 37.4979 }; // 강남역
+        notice.hidden = false;
+        notice.textContent = "위치 권한이 없어 강남역 기준으로 추천하고 있어요.";
+        resolve(loc);
+      };
+      if (!navigator.geolocation) return fallback();
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { loc = { x: pos.coords.longitude, y: pos.coords.latitude }; resolve(loc); },
+        fallback,
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    });
+  }
+
+  // ---------- 검색 (서버가 없으면 예시 데이터) ----------
+  async function searchPlaces(query, { x, y }, page = 1) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&x=${x}&y=${y}&page=${page}`, { signal: ctrl.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      return { places: data.places || [], end: !!data.is_end };
+    } catch {
+      return { places: page === 1 ? demoPlaces(query, { x, y }) : [], end: true };
+    } finally { clearTimeout(t); }
+  }
+
+  function demoPlaces(query, { x, y }) {
+    const names = ["골목", "본점", "든든", "한그릇", "단골"];
+    return names.map((n, i) => ({
+      id: `demo-${query}-${i}`,
+      place_name: `${query} ${n}집`,
+      category_name: `음식점 > ${query}`,
+      distance: String(150 + i * 170),
+      road_address_name: "예시 주소 (실제 가게 아님)",
+      phone: "",
+      x: x + (i - 2) * 0.0012,
+      y: y + (i % 2 ? 1 : -1) * 0.0009,
+      place_url: "",
+      demo: true,
+    }));
+  }
+
+  // ---------- 입력 해석 (무료 규칙) ----------
+  function interpret(text) {
+    const cat = Object.keys(CATEGORIES).find((k) => text.includes(k));
+    if (cat) return { mode: "category", queries: [CATEGORIES[cat]] };
+    const foods = allFoods().filter((f) => text.includes(f));
+    if (foods.length) return { mode: "food", queries: foods };
+    const sit = Object.keys(SITUATIONS).find((k) => text.includes(k));
+    if (sit) return { mode: "food", queries: SITUATIONS[sit] };
+    if (/뜨끈|따뜻|해장|비\s?오/.test(text)) return { mode: "food", queries: SITUATIONS.국물 };
+    if (/가볍|다이어트/.test(text)) return { mode: "food", queries: SITUATIONS.가볍게 };
+    if (/혼자/.test(text)) return { mode: "food", queries: SITUATIONS.혼밥 };
+    // 모르는 말이면 입력한 그대로 카카오에서 검색하고, 없으면 시간대 메뉴로
+    return { mode: "food", queries: [text.slice(0, 20)], fallback: SITUATIONS[timeSlot()] };
+  }
+
+  function allFoods() { return [...new Set(Object.values(SITUATIONS).flat())]; }
+
+  function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
+
+  // ---------- 추천 ----------
+  async function ask(text, { category, situation } = {}) {
+    text = text.trim();
+    if (!text) return;
+    app.classList.add("talking");
+    bubble(text, "me");
+    let plan;
+    if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
+    else if (situation === "아무거나") plan = { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
+    else if (situation) plan = { mode: "food", queries: SITUATIONS[situation] };
+    else plan = interpret(text);
+    current = { ...plan, shown: new Set(), used: new Set(), pages: new Map() };
+    await pick();
+  }
+
+  async function pick() {
+    if (!current) return;
+    chat.querySelectorAll("[data-again]").forEach((b) => b.remove()); // 마지막 카드에만 남김
+    const typing = bubble("고르는 중…", "bot", "typing");
+    const here = await getLocation();
+
+    const avoid = new Set(recent.get());
+    let order = shuffle(current.queries.filter((q) => !current.used.has(q)));
+    order = [...order.filter((q) => !avoid.has(q)), ...order.filter((q) => avoid.has(q))];
+    if (!order.length) { current.used.clear(); order = shuffle(current.queries); }
+    if (current.fallback) order = [...order, ...shuffle(current.fallback)];
+
+    for (const query of order.slice(0, 5)) {
+      const p = await nextPlace(query, here);
+      if (!p) { current.used.add(query); continue; }
+      const label = current.mode === "category" ? lastCategory(p) || query : query;
+      if (current.mode === "food") current.used.add(query); // 다음엔 다른 메뉴
+      recent.add(label);
+      typing.remove();
+      renderPick(label, p);
+      return;
+    }
+    typing.remove();
+    bubble("근처 1km 안에서 더 찾을 곳이 없어요. 다른 버튼을 눌러보세요.");
+  }
+
+  // 거리순 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
+  async function nextPlace(query, here) {
+    let page = current.pages.get(query) || 1;
+    while (page <= MAX_PAGE) {
+      const { places, end } = await searchPlaces(query, here, page);
+      const fresh = places.filter((p) => !current.shown.has(p.id));
+      if (fresh.length) {
+        const near = fresh.slice(0, 5);
+        const p = near[Math.floor(Math.random() * near.length)];
+        current.shown.add(p.id);
+        current.pages.set(query, page);
+        return p;
+      }
+      if (end) break;
+      page += 1;
+    }
+    current.pages.set(query, MAX_PAGE + 1);
+    return null;
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = input.value;
+    input.value = "";
+    input.blur();
+    ask(v);
+  });
+
+  renderChips();
+})();

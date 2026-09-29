@@ -1,0 +1,6 @@
+{
+  "name": "oneul-mwo-meokji",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" }
+}

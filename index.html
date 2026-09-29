@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>오늘 뭐 먹지</title>
+  <meta name="description" content="고민은 그만. 지금 내 주변에서 먹을 곳 하나를 골라드려요." />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app" class="home">
+    <header class="brand">
+      <h1>오늘 뭐 먹지<span class="dot">?</span></h1>
+      <p class="tagline">고민은 그만, 하나만 골라드릴게요</p>
+    </header>
+
+    <section id="chat" class="chat" aria-live="polite"></section>
+
+    <form id="ask" class="ask" autocomplete="off">
+      <input id="q" type="text" inputmode="search" enterkeyhint="send"
+             placeholder="예: 중식, 국밥, 비 오는 날" aria-label="먹고 싶은 것" />
+      <button type="submit" aria-label="추천받기">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+
+    <nav class="chip-rows" aria-label="빠른 선택">
+      <div id="chips-cat" class="chips" aria-label="음식 종류"></div>
+      <div id="chips-sit" class="chips" aria-label="상황"></div>
+    </nav>
+    <p id="notice" class="notice" hidden></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

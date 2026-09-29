@@ -1,0 +1,124 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b6b6b;
+  --line: #e6e6e6;
+  --card: #f7f7f5;
+  --accent: #ff5a36;
+  --accent-fg: #ffffff;
+  --bubble-me: #1a1a1a;
+  --bubble-me-fg: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111111;
+    --fg: #f2f2f2;
+    --muted: #9a9a9a;
+    --line: #2b2b2b;
+    --card: #1c1c1c;
+    --bubble-me: #f2f2f2;
+    --bubble-me-fg: #111111;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111111;
+  --fg: #f2f2f2;
+  --muted: #9a9a9a;
+  --line: #2b2b2b;
+  --card: #1c1c1c;
+  --bubble-me: #f2f2f2;
+  --bubble-me-fg: #111111;
+    color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 560px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+/* 첫 화면: 검색창이 가운데 */
+.brand { text-align: center; margin-top: 30vh; transition: margin .25s ease; }
+.brand h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0; }
+.brand .dot { color: var(--accent); }
+.tagline { color: var(--muted); margin: 8px 0 24px; font-size: 15px; }
+
+/* 대화가 시작되면 검색창이 아래로 */
+main.talking .brand { margin-top: 12px; }
+main.talking .brand h1 { font-size: 18px; }
+main.talking .tagline { display: none; }
+main.talking .chat { flex: 1; padding-bottom: 24px; }
+main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(180px + env(safe-area-inset-bottom)); }
+main.talking .ask { position: sticky; bottom: calc(100px + env(safe-area-inset-bottom)); }
+main.talking .chip-rows { position: sticky; bottom: env(safe-area-inset-bottom); background: var(--bg); padding-bottom: 8px; }
+
+.ask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 6px 6px 18px;
+  background: var(--bg);
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.ask input {
+  flex: 1; min-width: 0;
+  border: 0; outline: 0; background: transparent; color: var(--fg);
+  font-size: 16px; /* iOS 확대 방지 */
+  padding: 10px 0;
+}
+.ask button {
+  width: 44px; height: 44px; border-radius: 50%; border: 0;
+  background: var(--accent); color: var(--accent-fg);
+  display: grid; place-items: center; cursor: pointer; flex: none;
+}
+
+.chips {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;
+  scrollbar-width: none;
+}
+.chip-rows { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  border-radius: 999px; padding: 9px 14px; font-size: 14px; cursor: pointer;
+}
+.chip:active { transform: scale(.97); }
+
+.notice { color: var(--muted); font-size: 12px; text-align: center; margin: 8px 0 0; }
+
+.chat { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 18px; line-height: 1.45; font-size: 15px; }
+.msg.me { align-self: flex-end; background: var(--bubble-me); color: var(--bubble-me-fg); border-bottom-right-radius: 6px; }
+.msg.bot { align-self: flex-start; background: var(--card); border-bottom-left-radius: 6px; }
+.msg.typing { color: var(--muted); }
+
+.pick {
+  align-self: stretch; background: var(--card); border-radius: 18px; padding: 16px;
+}
+.pick .food { font-size: 13px; color: var(--accent); font-weight: 700; margin: 0 0 4px; }
+.pick h2 { font-size: 20px; margin: 0 0 6px; letter-spacing: -0.3px; }
+.pick .meta { color: var(--muted); font-size: 14px; margin: 0 0 2px; }
+.pick .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.pick .actions a, .pick .actions button {
+  display: block; text-align: center; text-decoration: none;
+  border-radius: 12px; padding: 12px 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+}
+.pick .actions .primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.pick .actions .wide { grid-column: 1 / -1; }
+.demo-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }

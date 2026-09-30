@@ -79,9 +79,8 @@ main.talking .brand { margin-top: 12px; }
 main.talking .brand h1 { font-size: 18px; }
 main.talking .tagline { display: none; }
 main.talking .chat { flex: 1; padding-bottom: 24px; }
-main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(240px + env(safe-area-inset-bottom)); }
-main.talking .ask { position: sticky; bottom: calc(156px + env(safe-area-inset-bottom)); }
-main.talking .chip-rows { position: sticky; bottom: env(safe-area-inset-bottom); background: var(--bg); padding-bottom: 8px; }
+main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(250px + env(safe-area-inset-bottom)); }
+main.talking .dock { position: sticky; bottom: 0; background: var(--bg); padding: 6px 0 calc(8px + env(safe-area-inset-bottom)); }
 
 .ask {
   display: flex;
@@ -117,14 +116,15 @@ main.talking .chip-rows { position: sticky; bottom: env(safe-area-inset-bottom);
 }
 .chip:active { transform: scale(.97); }
 
-/* 이동 방법: 걸어서 / 차로 */
-.mode { display: flex; gap: 4px; padding: 3px; margin: 0 2px 2px; background: var(--card); border-radius: 12px; align-self: center; }
+/* 이동 방법: 검색창 위 아이콘 (걸어서 / 차로) */
+.mode { display: flex; gap: 4px; padding: 3px; margin: 0 0 8px 8px; background: var(--card); border-radius: 12px; align-self: flex-start; width: max-content; }
 .mode button {
+  display: inline-flex; align-items: center; gap: 4px;
   border: 0; background: transparent; color: var(--muted); border-radius: 9px;
-  padding: 7px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+  min-height: 36px; padding: 6px 12px; font-size: 14px; cursor: pointer;
 }
-.mode button small { font-weight: 500; font-size: 12px; }
-.mode button[aria-checked="true"] { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.mode button small { font-weight: 600; font-size: 12px; }
+.mode button[aria-checked="true"] { background: var(--bg); color: var(--accent-text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
 .locbar {
   display: flex; align-items: center; gap: 12px;

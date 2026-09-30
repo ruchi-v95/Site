@@ -20,8 +20,10 @@
   const MAX_PAGE = 3;
   // 이동 방법: 걸어서는 1km, 차로는 3km 안에서 찾는다
   const MODES = {
-    walk: { label: "걸어서", radius: 1000, perMin: 67, word: "도보" },   // 약 4km/h
-    car: { label: "차로", radius: 3000, perMin: 400, word: "차로" },     // 시내 약 24km/h
+    walk: { label: "걸어서", radius: 1000, perMin: 67, word: "도보",   // 약 4km/h
+      icon: '<circle cx="13" cy="4" r="2"/><path d="M8 21l3-7 3 3v5M10 10l-3 4M10 10l3-3 3 4 3 1M11 14l-1-4"/>' },
+    car: { label: "차로", radius: 3000, perMin: 400, word: "차로",     // 시내 약 24km/h
+      icon: '<path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>' },
   };
   const MODE_KEY = "wmm.mode";
 
@@ -179,7 +181,8 @@
       b.type = "button";
       b.setAttribute("role", "radio");
       b.setAttribute("aria-checked", String(key === travel));
-      b.innerHTML = `${esc(md.label)} <small>${km(md.radius)}</small>`;
+      b.setAttribute("aria-label", `${md.label} ${km(md.radius)}`);
+      b.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${md.icon}</svg><small>${km(md.radius)}</small>`;
       b.onclick = () => setTravel(key);
       box.appendChild(b);
     }

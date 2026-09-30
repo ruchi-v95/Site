@@ -219,8 +219,13 @@
 
   function showLocbar(state) {
     locbar.hidden = false;
+    locBtn.hidden = false;
     if (state === "denied") {
-      locText.textContent = "위치가 꺼져 있어 강남역 기준으로 추천해요. 브라우저 설정에서 위치를 허용한 뒤 다시 시도를 눌러주세요.";
+      locText.textContent = "위치 권한이 꺼져 있어요. 주소창 왼쪽 아이콘에서 위치를 허용한 뒤 다시 시도를 누르거나, 아래에 동네 이름을 입력하세요.";
+      locBtn.textContent = "다시 시도";
+    } else if (state === "unavailable") {
+      // 권한은 있는데 기기가 위치를 못 찾는 경우 (PC에서 흔함: Windows/맥 위치 서비스 꺼짐, 유선 인터넷)
+      locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows 설정 > 개인 정보 > 위치(맥은 시스템 설정 > 개인정보 보호 > 위치 서비스)를 켜거나, 아래에 동네 이름을 입력하세요.";
       locBtn.textContent = "다시 시도";
     } else {
       locText.textContent = "내 주변 가게를 찾으려면 위치 정보가 필요해요.";
@@ -228,22 +233,43 @@
     }
   }
 
+  function setLoc(next) {
+    loc = next;
+    usingFallback = false;
+    locbar.hidden = true;
+    notice.hidden = true;
+  }
+
   function requestLocation() {
     return new Promise((resolve) => {
-      if (!navigator.geolocation) { showLocbar("denied"); return resolve(null); }
+      if (!navigator.geolocation) { showLocbar("unavailable"); return resolve(null); }
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          loc = { x: pos.coords.longitude, y: pos.coords.latitude };
-          usingFallback = false;
-          locbar.hidden = true;
-          notice.hidden = true;
-          resolve(loc);
-        },
-        () => { showLocbar("denied"); resolve(null); },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        (pos) => { setLoc({ x: pos.coords.longitude, y: pos.coords.latitude }); resolve(loc); },
+        (err) => { showLocbar(err && err.code === 1 ? "denied" : "unavailable"); resolve(null); },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
       );
     });
   }
+
+  // 동네·역 이름으로 위치 정하기 (카카오 키워드 검색의 첫 결과 좌표)
+  $("#where").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("#where-q").value.trim();
+    if (!q) return;
+    locText.textContent = "찾는 중…";
+    try {
+      const r = await fetch(`/api/where?q=${encodeURIComponent(q)}`);
+      const d = r.ok ? await r.json() : null;
+      if (!d || !d.x) throw new Error("none");
+      setLoc({ x: Number(d.x), y: Number(d.y) });
+      $("#where-q").value = "";
+      notice.hidden = false;
+      notice.textContent = `${d.name} 근처에서 추천하고 있어요.`;
+      if (app.classList.contains("talking")) bubble(`이제 ${d.name} 근처에서 찾을게요.`);
+    } catch {
+      locText.textContent = `"${q}"을(를) 찾지 못했어요. 역이나 동 이름으로 다시 입력해 보세요.`;
+    }
+  });
 
   async function getLocation() {
     if (loc && !usingFallback) return loc;
@@ -252,7 +278,7 @@
     usingFallback = true;
     loc = FALLBACK;
     notice.hidden = false;
-    notice.textContent = "위치 권한이 없어 강남역 기준으로 추천하고 있어요.";
+    notice.textContent = "위치를 알 수 없어 강남역 기준으로 추천하고 있어요. 위에 동네 이름을 입력하면 바꿀 수 있어요.";
     return loc;
   }
 

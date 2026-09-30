@@ -127,10 +127,17 @@ main.talking .dock { position: sticky; bottom: 0; background: var(--bg); padding
 .mode button[aria-checked="true"] { background: var(--bg); color: var(--accent-text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
 .locbar {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; flex-direction: column; gap: 10px;
   background: var(--card); border-radius: 14px; padding: 12px 12px 12px 16px; margin: 0 0 16px;
 }
 .locbar[hidden] { display: none; }
+.loc-row { display: flex; align-items: center; gap: 12px; }
+.where { display: flex; gap: 8px; }
+.where input {
+  flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg);
+  font-size: 16px; padding: 9px 12px;
+}
+.locbar .where button { background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
 .locbar p { flex: 1; min-width: 0; margin: 0; font-size: 14px; line-height: 1.45; word-break: keep-all; }
 .locbar button {
   flex: none; border: 0; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 700;

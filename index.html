@@ -31,8 +31,14 @@
     </header>
 
     <div id="locbar" class="locbar" role="status" hidden>
-      <p id="loc-text"></p>
-      <button id="loc-btn" type="button">위치 허용</button>
+      <div class="loc-row">
+        <p id="loc-text"></p>
+        <button id="loc-btn" type="button">위치 허용</button>
+      </div>
+      <form id="where" class="where" autocomplete="off">
+        <input id="where-q" type="text" enterkeyhint="done" placeholder="동네·역 이름 (예: 홍대입구역)" aria-label="동네나 역 이름" />
+        <button type="submit">이 근처로</button>
+      </form>
     </div>
 
     <section id="chat" class="chat" aria-live="polite"></section>

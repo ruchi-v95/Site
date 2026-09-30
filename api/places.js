@@ -2,6 +2,7 @@
 const KAKAO_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store"); // 오류 응답은 캐시하지 않음 (성공 시 아래에서 덮어씀)
   const key = process.env.KAKAO_REST_API_KEY;
   if (!key) return res.status(503).json({ error: "KAKAO_REST_API_KEY not set" });
 

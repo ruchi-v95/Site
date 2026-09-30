@@ -107,23 +107,65 @@
   }
 
   // ---------- 위치 ----------
-  function getLocation() {
-    if (loc) return Promise.resolve(loc);
+  // 첫 화면에서 위치 허용을 먼저 묻는다. 거절하면 강남역 기준으로 추천하고, 언제든 다시 허용할 수 있다.
+  const FALLBACK = { x: 127.0276, y: 37.4979 }; // 강남역
+  const locbar = $("#locbar"), locText = $("#loc-text"), locBtn = $("#loc-btn");
+  let usingFallback = false;
+
+  function showLocbar(state) {
+    locbar.hidden = false;
+    if (state === "denied") {
+      locText.textContent = "위치가 꺼져 있어 강남역 기준으로 추천해요. 브라우저 설정에서 위치를 허용한 뒤 다시 시도를 눌러주세요.";
+      locBtn.textContent = "다시 시도";
+    } else {
+      locText.textContent = "내 주변 가게를 찾으려면 위치 정보가 필요해요.";
+      locBtn.textContent = "위치 허용";
+    }
+  }
+
+  function requestLocation() {
     return new Promise((resolve) => {
-      const fallback = () => {
-        loc = { x: 127.0276, y: 37.4979 }; // 강남역
-        notice.hidden = false;
-        notice.textContent = "위치 권한이 없어 강남역 기준으로 추천하고 있어요.";
-        resolve(loc);
-      };
-      if (!navigator.geolocation) return fallback();
+      if (!navigator.geolocation) { showLocbar("denied"); return resolve(null); }
       navigator.geolocation.getCurrentPosition(
-        (pos) => { loc = { x: pos.coords.longitude, y: pos.coords.latitude }; resolve(loc); },
-        fallback,
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        (pos) => {
+          loc = { x: pos.coords.longitude, y: pos.coords.latitude };
+          usingFallback = false;
+          locbar.hidden = true;
+          notice.hidden = true;
+          resolve(loc);
+        },
+        () => { showLocbar("denied"); resolve(null); },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
       );
     });
   }
+
+  async function getLocation() {
+    if (loc && !usingFallback) return loc;
+    const got = await requestLocation();
+    if (got) return got;
+    usingFallback = true;
+    loc = FALLBACK;
+    notice.hidden = false;
+    notice.textContent = "위치 권한이 없어 강남역 기준으로 추천하고 있어요.";
+    return loc;
+  }
+
+  async function initLocation() {
+    let state = "prompt";
+    try {
+      if (navigator.permissions) state = (await navigator.permissions.query({ name: "geolocation" })).state;
+    } catch {}
+    if (state === "granted") requestLocation(); // 이미 허용됨: 조용히 미리 가져온다
+    else showLocbar(state);
+  }
+
+  locBtn.addEventListener("click", async () => {
+    locBtn.disabled = true;
+    locText.textContent = "위치를 확인하는 중…";
+    await requestLocation();
+    locBtn.disabled = false;
+  });
 
   // ---------- 검색 (서버가 없으면 예시 데이터) ----------
   async function searchPlaces(query, { x, y }, page = 1) {
@@ -244,4 +286,5 @@
   });
 
   renderChips();
+  initLocation();
 })();

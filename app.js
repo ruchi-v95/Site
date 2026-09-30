@@ -1,4 +1,4 @@
-// 오늘 뭐 먹지: 카테고리/상황 버튼으로 카카오 장소 검색(무료)만 사용한다. 유료 AI는 쓰지 않는다.
+// 오땡뭐!: 카테고리/상황 버튼으로 카카오 장소 검색(무료)만 사용한다. 유료 AI는 쓰지 않는다.
 (() => {
   // 음식 종류 버튼: 카카오 음식점 카테고리 이름으로 그대로 검색
   const CATEGORIES = {
@@ -285,6 +285,28 @@
     ask(v);
   });
 
+  // ---------- 배너 단어 순환 ----------
+  function startRotator() {
+    const words = ["점심", "저녁", "야식", "간식"];
+    const el = $("#rot-word"), sr = $("#rot-sr");
+    let i = Math.max(0, words.indexOf(timeSlot()));
+    el.textContent = sr.textContent = words[i];
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // 움직임 줄이기: 지금 시간대 단어로 고정
+    setInterval(() => {
+      if (document.hidden) return;
+      el.classList.add("out");
+      setTimeout(() => {
+        i = (i + 1) % words.length;
+        el.textContent = words[i];
+        el.classList.remove("out");
+        el.classList.add("pre");
+        void el.offsetWidth; // 아래에서 올라오도록 위치를 먼저 적용
+        el.classList.remove("pre");
+      }, 350);
+    }, 2200);
+  }
+
   renderChips();
   initLocation();
+  startRotator();
 })();

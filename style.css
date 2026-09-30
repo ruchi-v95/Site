@@ -6,6 +6,8 @@
   --card: #f7f7f5;
   --accent: #ff5a36;
   --accent-fg: #ffffff;
+  --accent-text: #c53a16; /* 밝은 배경 위 주황 글자 (대비 4.5 이상) */
+  color-scheme: light;
   --bubble-me: #1a1a1a;
   --bubble-me-fg: #ffffff;
 }
@@ -18,6 +20,7 @@
     --card: #1c1c1c;
     --bubble-me: #f2f2f2;
     --bubble-me-fg: #111111;
+    --accent-text: #ff7a5c;
     color-scheme: dark;
   }
 }
@@ -29,7 +32,8 @@
   --card: #1c1c1c;
   --bubble-me: #f2f2f2;
   --bubble-me-fg: #111111;
-    color-scheme: dark;
+  --accent-text: #ff7a5c;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -53,7 +57,21 @@ main {
 /* 첫 화면: 검색창이 가운데 */
 .brand { text-align: center; margin-top: 30vh; transition: margin .25s ease; }
 .brand h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0; }
-.brand .dot { color: var(--accent); }
+.brand .dot { color: var(--accent-text); }
+.brand .mark { margin: 0 0 6px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; color: var(--accent-text); }
+main.talking .brand .mark { display: none; }
+
+/* 배너의 바뀌는 단어: 점심 → 저녁 → 야식 → 간식 */
+.brand h1 { line-height: 1.25; }
+.rot { display: inline-block; height: 1.25em; line-height: 1.25; overflow: hidden; vertical-align: top; }
+.rot > span {
+  display: inline-block; color: var(--accent-text);
+  transition: transform .35s ease, opacity .35s ease;
+}
+.rot > span.out { transform: translateY(-100%); opacity: 0; }
+.rot > span.pre { transform: translateY(100%); opacity: 0; transition: none; }
+@media (prefers-reduced-motion: reduce) { .rot > span { transition: none; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tagline { color: var(--muted); margin: 8px 0 24px; font-size: 15px; }
 
 /* 대화가 시작되면 검색창이 아래로 */
@@ -122,9 +140,10 @@ main.talking .locbar { margin-top: 8px; }
 .pick {
   align-self: stretch; background: var(--card); border-radius: 18px; padding: 16px;
 }
-.pick .food { font-size: 13px; color: var(--accent); font-weight: 700; margin: 0 0 4px; }
+.pick .food { font-size: 13px; color: var(--accent-text); font-weight: 700; margin: 0 0 4px; }
 .pick h2 { font-size: 20px; margin: 0 0 6px; letter-spacing: -0.3px; }
 .pick .meta { color: var(--muted); font-size: 14px; margin: 0 0 2px; }
+.pick .meta a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
 .pick .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
 .pick .actions a, .pick .actions button {
   display: block; text-align: center; text-decoration: none;

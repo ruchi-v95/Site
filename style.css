@@ -153,3 +153,19 @@ main.talking .locbar { margin-top: 8px; }
 .pick .actions .primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .pick .actions .wide { grid-column: 1 / -1; }
 .demo-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+
+/* 하단 링크 */
+.foot { display: flex; justify-content: center; gap: 14px; padding: 12px 0 4px; font-size: 12px; }
+.foot a { color: var(--muted); text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+main.talking .foot { display: none; }
+
+/* 소개·개인정보처리방침 같은 글 페이지 */
+main.doc { padding-block: 32px 48px; line-height: 1.7; font-size: 15px; }
+main.doc h1 { font-size: 26px; margin: 8px 0 12px; letter-spacing: -0.3px; text-wrap: balance; }
+main.doc h2 { font-size: 17px; margin: 28px 0 6px; }
+main.doc p, main.doc li { max-width: 65ch; }
+main.doc a { color: var(--accent-text); }
+main.doc .mark { margin: 0; font-weight: 800; }
+main.doc .mark a { text-decoration: none; }
+main.doc .doc-back { margin-top: 36px; }

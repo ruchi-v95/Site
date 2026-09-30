@@ -79,8 +79,8 @@ main.talking .brand { margin-top: 12px; }
 main.talking .brand h1 { font-size: 18px; }
 main.talking .tagline { display: none; }
 main.talking .chat { flex: 1; padding-bottom: 24px; }
-main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(180px + env(safe-area-inset-bottom)); }
-main.talking .ask { position: sticky; bottom: calc(100px + env(safe-area-inset-bottom)); }
+main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(240px + env(safe-area-inset-bottom)); }
+main.talking .ask { position: sticky; bottom: calc(156px + env(safe-area-inset-bottom)); }
 main.talking .chip-rows { position: sticky; bottom: env(safe-area-inset-bottom); background: var(--bg); padding-bottom: 8px; }
 
 .ask {
@@ -117,6 +117,15 @@ main.talking .chip-rows { position: sticky; bottom: env(safe-area-inset-bottom);
 }
 .chip:active { transform: scale(.97); }
 
+/* 이동 방법: 걸어서 / 차로 */
+.mode { display: flex; gap: 4px; padding: 3px; margin: 0 2px 2px; background: var(--card); border-radius: 12px; align-self: center; }
+.mode button {
+  border: 0; background: transparent; color: var(--muted); border-radius: 9px;
+  padding: 7px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.mode button small { font-weight: 500; font-size: 12px; }
+.mode button[aria-checked="true"] { background: var(--bg); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
 .locbar {
   display: flex; align-items: center; gap: 12px;
   background: var(--card); border-radius: 14px; padding: 12px 12px 12px 16px; margin: 0 0 16px;
@@ -152,6 +161,18 @@ main.talking .locbar { margin-top: 8px; }
 }
 .pick .actions .primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .pick .actions .wide { grid-column: 1 / -1; }
+.pick .actions button:disabled { color: var(--muted); cursor: default; }
+
+/* 같은 종류 더보기 목록 */
+.more { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.more li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.more-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.more-name { color: var(--fg); font-weight: 700; font-size: 15px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-meta { color: var(--muted); font-size: 13px; }
+.more-go {
+  flex: none; text-decoration: none; font-size: 13px; font-weight: 600; color: var(--accent-text);
+  border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 10px;
+}
 .demo-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 
 /* 하단 링크 */

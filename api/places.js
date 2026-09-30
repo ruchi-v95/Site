@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   const x = Number(req.query.x);
   const y = Number(req.query.y);
   const page = Math.min(3, Math.max(1, parseInt(req.query.page, 10) || 1));
+  const radius = Math.min(5000, Math.max(500, parseInt(req.query.radius, 10) || 1000)); // 걸어서 1km, 차로 3km
   // 대한민국 대략 범위 밖 좌표는 거절
   if (!q || !(x > 124 && x < 132) || !(y > 33 && y < 39)) {
     return res.status(400).json({ error: "bad query" });
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     category_group_code: "FD6", // 음식점
     x: String(x),
     y: String(y),
-    radius: "1000",
+    radius: String(radius),
     sort: "distance",
     size: "15",
     page: String(page),

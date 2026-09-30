@@ -18,12 +18,21 @@
   const RECENT_KEY = "wmm.recent";
   const RECENT_MAX = 5;
   const MAX_PAGE = 3;
+  // 이동 방법: 걸어서는 1km, 차로는 3km 안에서 찾는다
+  const MODES = {
+    walk: { label: "걸어서", radius: 1000, perMin: 67, word: "도보" },   // 약 4km/h
+    car: { label: "차로", radius: 3000, perMin: 400, word: "차로" },     // 시내 약 24km/h
+  };
+  const MODE_KEY = "wmm.mode";
 
   const $ = (s) => document.querySelector(s);
   const app = $("#app"), chat = $("#chat"), form = $("#ask"), input = $("#q"), notice = $("#notice");
 
   let loc = null;      // {x: 경도, y: 위도}
   let current = null;  // {queries, mode: "category"|"food", shown:Set, used:Set, pages:Map}
+  let travel = "walk";
+  try { if (MODES[localStorage.getItem(MODE_KEY)]) travel = localStorage.getItem(MODE_KEY); } catch {}
+  const km = (m) => `${m / 1000}km`;
 
   // ---------- 저장소 (실패해도 동작) ----------
   const recent = {
@@ -80,30 +89,109 @@
     return (p.category_name || "").split(" > ").slice(-1)[0];
   }
 
-  function renderPick(label, p) {
+  function metaLine(p, skip) {
+    const cat = lastCategory(p);
+    const dist = p.distance ? `${travelMinutes(p.distance)} · ${Number(p.distance).toLocaleString()}m` : "";
+    return [dist, cat && cat !== skip ? cat : ""].filter(Boolean).join(" · ");
+  }
+
+  function routeUrl(p) {
+    return `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
+  }
+
+  function renderPick(label, p, query) {
     const el = document.createElement("article");
     el.className = "pick";
     const cat = lastCategory(p);
-    const dist = p.distance ? `${walkMinutes(p.distance)} · ${Number(p.distance).toLocaleString()}m` : "";
-    const route = `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
+    const meta = metaLine(p, label);
+    const route = routeUrl(p);
+    const moreWord = cat || query;
     el.innerHTML = `
       <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}</p>
       <h2>${esc(p.place_name)}</h2>
-      ${dist ? `<p class="meta">${esc(dist)}${cat && cat !== label ? " · " + esc(cat) : ""}</p>` : ""}
+      ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
       <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
       ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
       <div class="actions">
         <a class="primary" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
         <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
-        <button type="button" class="wide" data-again>다시 뽑기</button>
-      </div>`;
+        <button type="button" data-more>${esc(moreWord)} 더보기</button>
+        <button type="button" data-again>다시 뽑기</button>
+      </div>
+      <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
+    const moreBtn = el.querySelector("[data-more]");
+    moreBtn.onclick = () => showMore(el, moreBtn, moreWord, p);
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
 
-  function walkMinutes(m) {
-    return `도보 ${Math.max(1, Math.round(Number(m) / 67))}분`; // 약 4km/h
+  // 같은 종류 가게를 거리순으로 5곳씩 보여준다. 누르면 5곳 더.
+  async function showMore(card, btn, word, first) {
+    const st = card._more || (card._more = { page: 0, end: false, list: [], seen: new Set([first.id]), idx: 0, radius: MODES[travel].radius });
+    const ul = card.querySelector(".more");
+    btn.disabled = true;
+    btn.textContent = "찾는 중…";
+    const here = await getLocation();
+    while (st.list.length - st.idx < 5 && !st.end && st.page < MAX_PAGE) {
+      st.page += 1;
+      const { places, end } = await searchPlaces(word, here, st.page, st.radius);
+      for (const q of places) if (!st.seen.has(q.id)) { st.seen.add(q.id); st.list.push(q); }
+      st.end = end;
+    }
+    const batch = st.list.slice(st.idx, st.idx + 5);
+    st.idx += batch.length;
+    for (const q of batch) {
+      const li = document.createElement("li");
+      const meta = metaLine(q, word);
+      li.innerHTML = `
+        <div class="more-info">
+          <a class="more-name" href="${esc(q.place_url || routeUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
+          ${meta ? `<span class="more-meta">${esc(meta)}</span>` : ""}
+        </div>
+        <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
+      ul.appendChild(li);
+    }
+    ul.hidden = ul.children.length === 0;
+    const left = st.idx < st.list.length || (!st.end && st.page < MAX_PAGE);
+    if (!ul.children.length) {
+      btn.textContent = `근처 ${km(st.radius)} 안에 다른 ${word} 가게가 없어요`;
+    } else if (left) {
+      btn.disabled = false;
+      btn.textContent = `${word} 5곳 더`;
+    } else {
+      btn.textContent = "더 없어요";
+    }
+    if (batch.length) ul.lastElementChild.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function travelMinutes(m) {
+    const md = MODES[travel];
+    return `${md.word} ${Math.max(1, Math.round(Number(m) / md.perMin))}분`;
+  }
+
+  // ---------- 이동 방법 (걸어서 / 차로) ----------
+  function renderModes() {
+    const box = $("#mode");
+    box.innerHTML = "";
+    for (const [key, md] of Object.entries(MODES)) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", String(key === travel));
+      b.innerHTML = `${esc(md.label)} <small>${km(md.radius)}</small>`;
+      b.onclick = () => setTravel(key);
+      box.appendChild(b);
+    }
+  }
+
+  function setTravel(key) {
+    if (key === travel) return;
+    travel = key;
+    try { localStorage.setItem(MODE_KEY, key); } catch {}
+    renderModes();
+    if (current) { current.pages.clear(); current.used.clear(); }
+    if (app.classList.contains("talking")) bubble(`이제 ${MODES[key].label} 갈 수 있는 ${km(MODES[key].radius)} 안에서 찾을게요.`);
   }
 
   // ---------- 위치 ----------
@@ -168,11 +256,11 @@
   });
 
   // ---------- 검색 (서버가 없으면 예시 데이터) ----------
-  async function searchPlaces(query, { x, y }, page = 1) {
+  async function searchPlaces(query, { x, y }, page = 1, radius = MODES[travel].radius) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 8000);
     try {
-      const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&x=${x}&y=${y}&page=${page}`, { signal: ctrl.signal });
+      const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&x=${x}&y=${y}&page=${page}&radius=${radius}`, { signal: ctrl.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       return { places: data.places || [], end: !!data.is_end };
@@ -250,11 +338,11 @@
       if (current.mode === "food") current.used.add(query); // 다음엔 다른 메뉴
       recent.add(label);
       typing.remove();
-      renderPick(label, p);
+      renderPick(label, p, query);
       return;
     }
     typing.remove();
-    bubble("근처 1km 안에서 더 찾을 곳이 없어요. 다른 버튼을 눌러보세요.");
+    bubble(`근처 ${km(MODES[travel].radius)} 안에서 더 찾을 곳이 없어요. ${travel === "walk" ? "차로를 눌러 더 넓게 찾거나 " : ""}다른 버튼을 눌러보세요.`);
   }
 
   // 거리순 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
@@ -306,6 +394,7 @@
     }, 2200);
   }
 
+  renderModes();
   renderChips();
   initLocation();
   startRotator();

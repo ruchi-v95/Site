@@ -26,6 +26,12 @@
       icon: '<path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>' },
   };
   const MODE_KEY = "wmm.mode";
+  // 카카오는 거리순일 때 이름·분류에 검색어가 없는 가게도 섞어 준다. 이름이나 분류에 이 말이 있는 가게만 고른다.
+  const ALIASES = {
+    라면: ["라면", "라멘"], 라멘: ["라멘", "라면"], 고기: ["고기", "육류", "삼겹", "갈비"],
+    피자: ["피자"], 버거: ["버거"], 햄버거: ["햄버거", "버거"], 초밥: ["초밥", "스시", "회"],
+    족발: ["족발"], 보쌈: ["보쌈", "족발"], 순대: ["순대"], 곱창: ["곱창", "막창"], 우동: ["우동"],
+  };
 
   const $ = (s) => document.querySelector(s);
   const app = $("#app"), chat = $("#chat"), form = $("#ask"), input = $("#q"), notice = $("#notice");
@@ -138,7 +144,7 @@
     while (st.list.length - st.idx < 5 && !st.end && st.page < MAX_PAGE) {
       st.page += 1;
       const { places, end } = await searchPlaces(word, here, st.page, st.radius);
-      for (const q of places) if (!st.seen.has(q.id)) { st.seen.add(q.id); st.list.push(q); }
+      for (const q of places) if (!st.seen.has(q.id) && matches(q, word)) { st.seen.add(q.id); st.list.push(q); }
       st.end = end;
     }
     const batch = st.list.slice(st.idx, st.idx + 5);
@@ -165,6 +171,13 @@
       btn.textContent = "더 없어요";
     }
     if (batch.length) ul.lastElementChild.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // 가게 이름이나 카카오 분류에 검색어(또는 같은 뜻의 말)가 들어 있는지
+  function matches(p, query) {
+    const hay = `${p.place_name || ""} ${p.category_name || ""}`.replace(/\s/g, "");
+    const terms = ALIASES[query] || [String(query).replace(/\s/g, "")];
+    return terms.some((t) => hay.includes(t));
   }
 
   function travelMinutes(m) {
@@ -353,7 +366,7 @@
     let page = current.pages.get(query) || 1;
     while (page <= MAX_PAGE) {
       const { places, end } = await searchPlaces(query, here, page);
-      const fresh = places.filter((p) => !current.shown.has(p.id));
+      const fresh = places.filter((p) => !current.shown.has(p.id) && (p.demo || matches(p, query)));
       if (fresh.length) {
         const near = fresh.slice(0, 5);
         const p = near[Math.floor(Math.random() * near.length)];

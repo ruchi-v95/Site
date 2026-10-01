@@ -30,7 +30,15 @@
   const ALIASES = {
     // 카카오는 메뉴 정보를 주지 않아서, 분식집처럼 대부분 그 메뉴를 파는 분류를 함께 넣는다
     라면: ["라면", "라멘", "분식"], 라멘: ["라멘", "라면"], 김밥: ["김밥", "분식"], 떡볶이: ["떡볶이", "분식"], 고기: ["고기", "육류", "삼겹", "갈비"],
-    피자: ["피자"], 버거: ["버거"], 햄버거: ["햄버거", "버거"], 초밥: ["초밥", "스시", "회"],
+    피자: ["피자"], 버거: ["버거"], 햄버거: ["햄버거", "버거"], 초밥: ["초밥", "스시", "참치", "오마카세"],
+    // 상황 버튼 메뉴: 가게 이름이나 카카오 분류에 흔히 쓰이는 말
+    국밥: ["국밥", "해장국", "설렁탕", "곰탕", "순대국"], 김치찌개: ["김치찌개", "찌개", "김치찜"],
+    돈까스: ["돈까스", "돈가스", "카츠"], 제육볶음: ["제육", "백반", "기사식당"], 칼국수: ["칼국수", "국수"],
+    냉면: ["냉면", "막국수", "면옥"], 비빔밥: ["비빔밥", "비빔", "백반"], 쌀국수: ["쌀국수", "베트남"],
+    덮밥: ["덮밥", "돈부리", "규동"], 순두부찌개: ["순두부"], 삼겹살: ["삼겹", "돼지고기"],
+    파스타: ["파스타", "이탈리", "양식"], 마라탕: ["마라"], 부대찌개: ["부대"], 감자탕: ["감자탕", "뼈해장국"],
+    갈비: ["갈비"], 양꼬치: ["양꼬치", "양고기"], 짬뽕: ["짬뽕", "중식", "중국"], 샐러드: ["샐러드", "포케"],
+    샌드위치: ["샌드위치", "서브웨이", "토스트"], 포케: ["포케", "샐러드"], 닭발: ["닭발"],
     족발: ["족발"], 보쌈: ["보쌈", "족발"], 순대: ["순대", "분식"], 곱창: ["곱창", "막창"], 우동: ["우동"],
   };
 
@@ -128,14 +136,32 @@
         <a class="primary" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
         <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
         <button type="button" data-more>${esc(moreWord)} 더보기</button>
-        <button type="button" data-again>다시 뽑기</button>
+        <button type="button" data-share>공유하기</button>
+        <button type="button" class="wide" data-again>다시 뽑기</button>
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
     const moreBtn = el.querySelector("[data-more]");
     moreBtn.onclick = () => showMore(el, moreBtn, moreWord, p);
+    const shareBtn = el.querySelector("[data-share]");
+    shareBtn.onclick = () => sharePick(shareBtn, label, p);
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  // 카톡·문자 등 휴대폰 공유 창으로 보내기. 공유 창이 없는 PC에서는 글을 복사한다.
+  async function sharePick(btn, label, p) {
+    const link = p.place_url || routeUrl(p);
+    const text = `오늘은 ${label}! "${p.place_name}" 어때?\n${link}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com`;
+    try {
+      if (navigator.share) { await navigator.share({ title: "오땡뭐!", text }); return; }
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "복사했어요";
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // 공유 창을 닫은 경우
+      btn.textContent = "공유하지 못했어요";
+    }
+    setTimeout(() => { btn.textContent = "공유하기"; }, 2000);
   }
 
   // 같은 종류 가게를 거리순으로 5곳씩 보여준다. 누르면 5곳 더.
@@ -445,6 +471,16 @@
     ctx.pages.set(query, MAX_PAGE + 1);
     return null;
   }
+
+  // 처음 화면으로: 진행 중인 추천은 버리고 대화를 지운다
+  $("#home").addEventListener("click", () => {
+    run += 1;
+    current = null;
+    chat.innerHTML = "";
+    input.value = "";
+    app.classList.remove("talking");
+    window.scrollTo({ top: 0 });
+  });
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();

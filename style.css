@@ -91,7 +91,12 @@ main.talking .brand .mark { display: none; }
 @media (prefers-reduced-motion: reduce) { .beta .hammer, .beta .dots i { animation: none; } #beta-msg { transition: none; } }
 
 /* 대화가 시작되면 검색창이 아래로 */
-main.talking .brand { margin-top: 12px; }
+main.talking .brand { margin-top: 12px; position: relative; }
+.home-btn { display: none; }
+main.talking .home-btn {
+  display: inline-flex; align-items: center; gap: 2px; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--muted); font-size: 13px; padding: 8px 6px; cursor: pointer;
+}
 main.talking .brand h1 { font-size: 18px; }
 main.talking .tagline, main.talking .beta { display: none; }
 main.talking .chat { flex: 1; padding-bottom: 24px; }
@@ -241,4 +246,3 @@ main.doc .doc-back { margin-top: 36px; }
 }
 .fb button:disabled { opacity: .6; }
 .fb-status { margin: 0; min-height: 1.5em; }
-.beta .beta-link { display: block; width: max-content; margin: 4px auto 0; color: var(--accent-text); text-underline-offset: 2px; }

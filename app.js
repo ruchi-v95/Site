@@ -39,6 +39,9 @@
 
   let loc = null;      // {x: 경도, y: 위도}
   let current = null;  // {queries, mode: "category"|"food", shown:Set, used:Set, pages:Map}
+  let run = 0;         // 마지막 추천 요청 번호. 빠르게 여러 번 누르면 마지막 것만 보여준다
+  // 로컬에서 서버 없이 열 때만 예시 가게를 쓴다. 실제 사이트에서는 실패를 그대로 알린다
+  const DEMO_OK = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
   let travel = "walk";
   try { if (MODES[localStorage.getItem(MODE_KEY)]) travel = localStorage.getItem(MODE_KEY); } catch {}
   const km = (m) => `${m / 1000}km`;
@@ -143,8 +146,9 @@
     btn.textContent = "찾는 중…";
     const here = await getLocation();
     while (st.list.length - st.idx < 5 && !st.end && st.page < MAX_PAGE) {
+      const { places, end, failed } = await searchPlaces(word, here, st.page + 1, st.radius);
+      if (failed) { btn.disabled = false; btn.textContent = "불러오지 못했어요 · 다시"; return; }
       st.page += 1;
-      const { places, end } = await searchPlaces(word, here, st.page, st.radius);
       for (const q of places) if (!st.seen.has(q.id) && matches(q, word)) { st.seen.add(q.id); st.list.push(q); }
       st.end = end;
     }
@@ -227,17 +231,37 @@
       // 권한은 있는데 기기가 위치를 못 찾는 경우 (PC에서 흔함: Windows/맥 위치 서비스 꺼짐, 유선 인터넷)
       locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows 설정 > 개인 정보 > 위치(맥은 시스템 설정 > 개인정보 보호 > 위치 서비스)를 켜거나, 아래에 동네 이름을 입력하세요.";
       locBtn.textContent = "다시 시도";
+    } else if (state === "change") {
+      locText.textContent = "다른 동네 이름을 입력하거나, 내 위치로 다시 찾을 수 있어요.";
+      locBtn.textContent = "내 위치로";
     } else {
       locText.textContent = "내 주변 가게를 찾으려면 위치 정보가 필요해요.";
       locBtn.textContent = "위치 허용";
     }
   }
 
-  function setLoc(next) {
+  function setLoc(next, label) {
     loc = next;
     usingFallback = false;
     locbar.hidden = true;
-    notice.hidden = true;
+    if (label) showNotice(`${label} 근처에서 추천하고 있어요.`);
+    else notice.hidden = true;
+  }
+
+  // 아래 안내 줄: 지금 어느 위치 기준인지 + 위치 바꾸기
+  function showNotice(text) {
+    notice.hidden = false;
+    notice.textContent = text + " ";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "notice-btn";
+    b.textContent = "위치 바꾸기";
+    b.onclick = () => {
+      showLocbar("change");
+      locbar.scrollIntoView({ behavior: "smooth", block: "center" });
+      $("#where-q").focus({ preventScroll: true });
+    };
+    notice.appendChild(b);
   }
 
   function requestLocation() {
@@ -261,10 +285,9 @@
       const r = await fetch(`/api/where?q=${encodeURIComponent(q)}`);
       const d = r.ok ? await r.json() : null;
       if (!d || !d.x) throw new Error("none");
-      setLoc({ x: Number(d.x), y: Number(d.y) });
+      setLoc({ x: Number(d.x), y: Number(d.y) }, d.name);
+      if (current) { current.pages.clear(); current.used.clear(); }
       $("#where-q").value = "";
-      notice.hidden = false;
-      notice.textContent = `${d.name} 근처에서 추천하고 있어요.`;
       if (app.classList.contains("talking")) bubble(`이제 ${d.name} 근처에서 찾을게요.`);
     } catch {
       locText.textContent = `"${q}"을(를) 찾지 못했어요. 역이나 동 이름으로 다시 입력해 보세요.`;
@@ -277,8 +300,7 @@
     if (got) return got;
     usingFallback = true;
     loc = FALLBACK;
-    notice.hidden = false;
-    notice.textContent = "위치를 알 수 없어 강남역 기준으로 추천하고 있어요. 위에 동네 이름을 입력하면 바꿀 수 있어요.";
+    showNotice("위치를 알 수 없어 강남역 기준으로 추천하고 있어요.");
     return loc;
   }
 
@@ -308,7 +330,8 @@
       const data = await r.json();
       return { places: data.places || [], end: !!data.is_end };
     } catch {
-      return { places: page === 1 ? demoPlaces(query, { x, y }) : [], end: true };
+      if (DEMO_OK) return { places: page === 1 ? demoPlaces(query, { x, y }) : [], end: true };
+      return { places: [], end: true, failed: true };
     } finally { clearTimeout(t); }
   }
 
@@ -364,47 +387,62 @@
 
   async function pick() {
     if (!current) return;
-    chat.querySelectorAll("[data-again]").forEach((b) => b.remove()); // 마지막 카드에만 남김
+    const ctx = current, id = ++run;
+    chat.querySelectorAll("[data-again], .typing").forEach((b) => b.remove()); // 마지막 카드에만 남김
     const typing = bubble("고르는 중…", "bot", "typing");
+    const stale = () => id !== run; // 그사이 다른 버튼을 눌렀으면 이 요청은 버린다
     const here = await getLocation();
+    if (stale()) return typing.remove();
 
     const avoid = new Set(recent.get());
-    let order = shuffle(current.queries.filter((q) => !current.used.has(q)));
+    let order = shuffle(ctx.queries.filter((q) => !ctx.used.has(q)));
     order = [...order.filter((q) => !avoid.has(q)), ...order.filter((q) => avoid.has(q))];
-    if (!order.length) { current.used.clear(); order = shuffle(current.queries); }
-    if (current.fallback) order = [...order, ...shuffle(current.fallback)];
+    if (!order.length) { ctx.used.clear(); order = shuffle(ctx.queries); }
+    if (ctx.fallback) order = [...order, ...shuffle(ctx.fallback)];
 
+    ctx.failed = false;
     for (const query of order.slice(0, 5)) {
-      const p = await nextPlace(query, here);
-      if (!p) { current.used.add(query); continue; }
-      const label = current.mode === "category" ? lastCategory(p) || query : query;
-      if (current.mode === "food") current.used.add(query); // 다음엔 다른 메뉴
+      const p = await nextPlace(ctx, query, here);
+      if (stale()) return typing.remove();
+      if (ctx.failed) break;
+      if (!p) { ctx.used.add(query); continue; }
+      const label = ctx.mode === "category" ? lastCategory(p) || query : query;
+      if (ctx.mode === "food") ctx.used.add(query); // 다음엔 다른 메뉴
       recent.add(label);
       typing.remove();
       renderPick(label, p, query);
       return;
     }
     typing.remove();
+    if (ctx.failed) {
+      const el = bubble("지금 가게 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "retry"; b.textContent = "다시 시도"; b.setAttribute("data-again", "");
+      b.onclick = () => pick();
+      el.appendChild(b);
+      return;
+    }
     bubble(`근처 ${km(MODES[travel].radius)} 안에서 더 찾을 곳이 없어요. ${travel === "walk" ? "차로를 눌러 더 넓게 찾거나 " : ""}다른 버튼을 눌러보세요.`);
   }
 
   // 거리순 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
-  async function nextPlace(query, here) {
-    let page = current.pages.get(query) || 1;
+  async function nextPlace(ctx, query, here) {
+    let page = ctx.pages.get(query) || 1;
     while (page <= MAX_PAGE) {
-      const { places, end } = await searchPlaces(query, here, page);
-      const fresh = places.filter((p) => !current.shown.has(p.id) && (p.demo || matches(p, query)));
+      const { places, end, failed } = await searchPlaces(query, here, page);
+      if (failed) { ctx.failed = true; return null; }
+      const fresh = places.filter((p) => !ctx.shown.has(p.id) && (p.demo || matches(p, query)));
       if (fresh.length) {
         const near = fresh.slice(0, 5);
         const p = near[Math.floor(Math.random() * near.length)];
-        current.shown.add(p.id);
-        current.pages.set(query, page);
+        ctx.shown.add(p.id);
+        ctx.pages.set(query, page);
         return p;
       }
       if (end) break;
       page += 1;
     }
-    current.pages.set(query, MAX_PAGE + 1);
+    ctx.pages.set(query, MAX_PAGE + 1);
     return null;
   }
 

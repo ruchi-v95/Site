@@ -32,3 +32,7 @@
 ## 방문자 통계
 
 Vercel Web Analytics를 씁니다(무료, 쿠키 없음). Vercel 프로젝트의 Analytics 탭에서 봅니다. 각 페이지 head에 `/_vercel/insights/script.js`가 들어 있습니다.
+
+## 의견 보내기
+
+`/feedback.html`에서 보낸 의견은 `api/feedback.js`가 이 저장소의 GitHub 이슈로 등록합니다(라벨 "사이트 의견"). Vercel 환경변수 `GITHUB_TOKEN`(Site 저장소 Issues 읽기·쓰기 권한의 fine-grained 토큰)이 필요하고, 토큰은 1년마다 새로 발급해야 합니다.

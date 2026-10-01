@@ -74,6 +74,21 @@ main.talking .brand .mark { display: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tagline { color: var(--muted); margin: 8px 0 24px; font-size: 15px; }
 .beta { color: var(--muted); font-size: 12px; margin: -18px 0 24px; }
+/* 테스트 중 안내: 망치질 + 점 깜빡임 + 문구 바뀜 */
+.beta .hammer { display: inline-block; transform-origin: 80% 80%; animation: hammer 0.9s ease-in-out infinite; }
+@keyframes hammer {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-35deg); }
+  45% { transform: rotate(12deg); }
+  55% { transform: rotate(0deg) translateY(1px); }
+}
+#beta-msg { display: inline-block; transition: opacity .25s ease, transform .25s ease; }
+#beta-msg.swap { opacity: 0; transform: translateY(-4px); }
+.beta .dots i { font-style: normal; animation: blink 1.2s infinite; }
+.beta .dots i:nth-child(2) { animation-delay: .2s; }
+.beta .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 60%, 100% { opacity: .2; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .beta .hammer, .beta .dots i { animation: none; } #beta-msg { transition: none; } }
 
 /* 대화가 시작되면 검색창이 아래로 */
 main.talking .brand { margin-top: 12px; }

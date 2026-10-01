@@ -437,7 +437,21 @@
     }, 2200);
   }
 
+  // 테스트 단계 안내 문구를 장난스럽게 바꿔가며 보여준다
+  function startBeta() {
+    const el = $("#beta-msg");
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const lines = ["열심히 고치는 중", "개발자 삽질 중 ⛏️", "버그 잡는 중 🐛", "맛집 데이터 닦는 중 🧽", "커피 수혈 중 ☕", "야근 중 🌙"];
+    let i = 0;
+    setInterval(() => {
+      if (document.hidden || app.classList.contains("talking")) return;
+      el.classList.add("swap");
+      setTimeout(() => { i = (i + 1) % lines.length; el.textContent = lines[i]; el.classList.remove("swap"); }, 250);
+    }, 2600);
+  }
+
   renderModes();
+  startBeta();
   renderChips();
   initLocation();
   startRotator();

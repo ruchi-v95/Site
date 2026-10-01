@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>의견 보내기 | 오땡뭐!</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+  <main class="doc">
+    <p class="mark"><a href="/">오땡뭐!</a></p>
+    <h1>의견 보내기</h1>
+    <p>이상한 가게가 나왔거나, 고장 났거나, 이런 기능이 있으면 좋겠다 싶을 때 알려주세요.</p>
+    <form id="fb" class="fb" novalidate>
+      <fieldset class="fb-type">
+        <legend>어떤 내용인가요?</legend>
+        <label><input type="radio" name="type" value="bug" checked /> 고장·오류</label>
+        <label><input type="radio" name="type" value="place" /> 가게 정보가 이상해요</label>
+        <label><input type="radio" name="type" value="idea" /> 이런 기능 원해요</label>
+        <label><input type="radio" name="type" value="etc" /> 기타</label>
+      </fieldset>
+      <label class="fb-label" for="fb-text">내용</label>
+      <textarea id="fb-text" name="text" rows="6" maxlength="1000" required
+        placeholder="예: 라면을 검색했는데 카페가 나와요 (역삼역 근처)"></textarea>
+      <p class="fb-hint">보내주신 내용은 공개된 GitHub 저장소에 그대로 올라가요. 이름, 연락처 같은 개인정보는 적지 말아주세요.</p>
+      <input class="fb-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <button type="submit">보내기</button>
+      <p id="fb-status" class="fb-status" role="status"></p>
+    </form>
+    <p class="doc-back"><a href="/">← 처음으로</a></p>
+  </main>
+  <script>
+    (() => {
+      const form = document.getElementById("fb"), status = document.getElementById("fb-status");
+      const started = Date.now();
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const text = form.text.value.trim();
+        if (text.length < 5) { status.textContent = "내용을 5자 이상 적어주세요."; return; }
+        const btn = form.querySelector("button");
+        btn.disabled = true;
+        status.textContent = "보내는 중…";
+        try {
+          const r = await fetch("/api/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: form.type.value, text, website: form.website.value, elapsed: Date.now() - started }),
+          });
+          if (!r.ok) throw new Error(String(r.status));
+          form.text.value = "";
+          status.textContent = "고마워요! 잘 받았어요. 열심히 고칠게요 🔨";
+        } catch {
+          status.textContent = "지금은 보내지 못했어요. 잠시 후 다시 시도해 주세요.";
+        } finally { btn.disabled = false; }
+      });
+    })();
+  </script>
+</body>
+</html>

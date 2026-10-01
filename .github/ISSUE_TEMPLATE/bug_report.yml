@@ -1,0 +1,20 @@
+name: 버그 신고
+description: 고장 났거나 이상하게 동작하는 것
+labels: ["버그"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 무슨 일이 있었나요?
+      placeholder: 예) 라면을 검색했는데 카페가 나와요
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: 어디서, 어떤 기기로?
+      placeholder: 예) 아이폰 사파리, 역삼역 근처, 걸어서 1km
+  - type: textarea
+    id: expected
+    attributes:
+      label: 어떻게 되어야 하나요?

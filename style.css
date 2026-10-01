@@ -213,3 +213,25 @@ main.doc a { color: var(--accent-text); }
 main.doc .mark { margin: 0; font-weight: 800; }
 main.doc .mark a { text-decoration: none; }
 main.doc .doc-back { margin-top: 36px; }
+
+/* 의견 보내기 */
+.fb { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.fb-type { border: 0; padding: 0; margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-type legend { font-weight: 700; margin-bottom: 8px; padding: 0; }
+.fb-type label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
+.fb-type label:has(input:checked) { border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+.fb-type input { accent-color: var(--accent); margin: 0; }
+.fb-label { font-weight: 700; }
+.fb textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg);
+  font: inherit; font-size: 16px; padding: 12px; resize: vertical;
+}
+.fb-hint { color: var(--muted); font-size: 13px; margin: 0; }
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.fb button {
+  align-self: flex-start; border: 0; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 700;
+  background: var(--accent); color: var(--accent-fg); cursor: pointer;
+}
+.fb button:disabled { opacity: .6; }
+.fb-status { margin: 0; min-height: 1.5em; }
+.beta .beta-link { display: block; width: max-content; margin: 4px auto 0; color: var(--accent-text); text-underline-offset: 2px; }

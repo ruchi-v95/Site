@@ -73,11 +73,12 @@ main.talking .brand .mark { display: none; }
 @media (prefers-reduced-motion: reduce) { .rot > span { transition: none; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .tagline { color: var(--muted); margin: 8px 0 24px; font-size: 15px; }
+.beta { color: var(--muted); font-size: 12px; margin: -18px 0 24px; }
 
 /* 대화가 시작되면 검색창이 아래로 */
 main.talking .brand { margin-top: 12px; }
 main.talking .brand h1 { font-size: 18px; }
-main.talking .tagline { display: none; }
+main.talking .tagline, main.talking .beta { display: none; }
 main.talking .chat { flex: 1; padding-bottom: 24px; }
 main.talking .msg, main.talking .pick { scroll-margin-bottom: calc(250px + env(safe-area-inset-bottom)); }
 main.talking .dock { position: sticky; bottom: 0; background: var(--bg); padding: 6px 0 calc(8px + env(safe-area-inset-bottom)); }

@@ -238,7 +238,14 @@
     try { localStorage.setItem(MODE_KEY, key); } catch {}
     renderModes();
     if (current) { current.pages.clear(); current.used.clear(); }
-    if (app.classList.contains("talking")) bubble(`이제 ${MODES[key].label} 갈 수 있는 ${km(MODES[key].radius)} 안에서 찾을게요.`);
+    if (!app.classList.contains("talking")) return;
+    // 방금 찾을 곳이 없었다면 넓힌 반경으로 같은 내용을 바로 다시 찾는다
+    if (current && current.empty) {
+      bubble(`${MODES[key].label} ${km(MODES[key].radius)} 안에서 다시 찾아볼게요.`);
+      pick();
+    } else {
+      bubble(`이제 ${MODES[key].label} 갈 수 있는 ${km(MODES[key].radius)} 안에서 찾을게요.`);
+    }
   }
 
   // ---------- 위치 ----------
@@ -427,6 +434,7 @@
     if (ctx.fallback) order = [...order, ...shuffle(ctx.fallback)];
 
     ctx.failed = false;
+    ctx.empty = false;
     for (const query of order.slice(0, 5)) {
       const p = await nextPlace(ctx, query, here);
       if (stale()) return typing.remove();
@@ -448,7 +456,15 @@
       el.appendChild(b);
       return;
     }
-    bubble(`근처 ${km(MODES[travel].radius)} 안에서 더 찾을 곳이 없어요. ${travel === "walk" ? "차로를 눌러 더 넓게 찾거나 " : ""}다른 버튼을 눌러보세요.`);
+    ctx.empty = true;
+    const msg = bubble(`근처 ${km(MODES[travel].radius)} 안에서 더 찾을 곳이 없어요. ${travel === "walk" ? "차로 넓혀서 찾거나 " : ""}다른 버튼을 눌러보세요.`);
+    if (travel === "walk") {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "retry"; b.setAttribute("data-again", "");
+      b.textContent = `차로 ${km(MODES.car.radius)}까지 넓혀서 찾기`;
+      b.onclick = () => setTravel("car");
+      msg.appendChild(b);
+    }
   }
 
   // 거리순 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.

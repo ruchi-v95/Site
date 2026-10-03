@@ -326,3 +326,11 @@ main.doc .v-links a { color: var(--muted); }
 .sheet-start { border: 0; border-radius: 14px; padding: 14px; font-size: 16px; font-weight: 800; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
 .sheet-start:disabled { opacity: .45; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .sheet-back, .sheet, .tray.bump { animation: none; } }
+.chip.chip-game { font-weight: 600; border-color: var(--fg); }
+.sheet-menus { display: flex; flex-wrap: wrap; gap: 6px; }
+.sheet-menus button { border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 7px 11px; font-size: 13px; cursor: pointer; }
+.sheet-menus button.on { border-color: var(--accent); color: var(--accent-text); background: var(--card); font-weight: 700; }
+.sheet-menus [data-menu-rand] { border-style: dashed; border-color: var(--accent); color: var(--accent-text); }
+.sheet-items li.is-menu { padding-block: 4px; }
+.sheet-items li.is-menu .sheet-em { width: 28px; height: 28px; font-size: 15px; }
+.sheet-start { position: sticky; bottom: 0; box-shadow: 0 -8px 16px var(--bg); }

@@ -5,7 +5,7 @@
     race: { icon: "🏁", name: "달리기", desc: "음식 캐릭터들이 달려요. 🔥부스터, 💫꽈당, 🐌달팽이가 랜덤으로 터지고, 꼴찌일수록 부스터가 잘 터져서 끝까지 몰라요.", go: "3, 2, 1 출발!" },
     wheel: { icon: "🎡", name: "돌림판", desc: "가운데 GO를 누르면 전구가 번쩍이며 돌아가요. 칸을 넘을 때마다 바늘이 딸깍!", go: "돌려!" },
     ladder: { icon: "🪜", name: "사다리", desc: "아래 칸은 모두 ❓ 카드예요. 한 명씩 내려가며 카드를 뒤집어요. 🍽️ 당첨은 딱 하나!", go: "사다리 타기!" },
-    bomb: { icon: "💣", name: "폭탄", desc: "심지가 타는 동안 💣이 가게들 사이를 옮겨 다녀요. 펑! 터진 가게는 탈락. 마지막에 남은 가게가 당첨!", go: "폭탄 돌리기!" },
+    bomb: { icon: "💣", name: "폭탄", desc: "심지가 타는 동안 💣이 후보들 사이를 옮겨 다녀요. 펑! 터지면 탈락. 마지막까지 남으면 당첨!", go: "폭탄 돌리기!" },
   };
   const COLORS = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"];
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -41,7 +41,7 @@
     root.setAttribute("aria-modal", "true");
     root.setAttribute("aria-label", "게임판 게임");
     root.innerHTML = `<div class="ga-wrap">
-      <div class="ga-top"><h2>🎮 게임판 ${places.length}곳</h2>
+      <div class="ga-top"><h2>🎮 후보 ${places.length}개</h2>
         <button class="ga-btn ga-sound" type="button" data-sound></button>
         <button class="ga-btn" type="button" data-close>✕ 닫기</button></div>
       <div class="ga-tabs" role="radiogroup" aria-label="게임 고르기">${Object.entries(GAMES).map(([k, g]) =>
@@ -138,7 +138,7 @@
         }
         $(".ga-board").textContent = ord.slice(0, 3).map((i, k) => `${["🥇", "🥈", "🥉"][k]} ${places[i].name}`).join(" · ");
         const win = st.findIndex((s) => s.x >= goal);
-        if (win >= 0 && !done) { done = true; track.classList.remove("running"); say(`🏁 ${places[win].name} 골인!!!`); later(() => finish(win, `${n}곳이 달린 경주 1등`), 600); return; }
+        if (win >= 0 && !done) { done = true; track.classList.remove("running"); say(`🏁 ${places[win].name} 골인!!!`); later(() => finish(win, `${n}개 후보가 달린 경주 1등`), 600); return; }
         raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);
@@ -237,7 +237,7 @@
     // 당첨자는 맨 마지막에 내려간다
     const seq = all.filter((i) => i !== winner).sort(() => Math.random() - .5).concat(winner), NS = "http://www.w3.org/2000/svg";
     const run = (k) => {
-      if (k >= seq.length) return later(() => finish(winner, "사다리 끝 🍽️ 카드를 뒤집은 가게"), 500);
+      if (k >= seq.length) return later(() => finish(winner, "사다리 끝에서 🍽️ 카드를 뒤집었어요"), 500);
       const i = seq[k], { pts, end } = trace(i);
       const segs = pts.slice(1).map((p, j) => ({ a: pts[j], b: p, len: Math.hypot(p[0] - pts[j][0], p[1] - pts[j][1]) }));
       const total = segs.reduce((a, s) => a + s.len, 0), dur = reduce ? 1 : (k === seq.length - 1 ? 2100 : 900);
@@ -272,7 +272,7 @@
 
   // ---------- 폭탄 돌리기 ----------
   function drawBomb() {
-    $(".ga-play").innerHTML = `${mc(`${places.length}곳 중 한 곳만 살아남아요`)}<div class="ga-fuse" aria-hidden="true"><i></i></div><div class="ga-grid">${places.map((p, i) =>
+    $(".ga-play").innerHTML = `${mc(`${places.length}개 중 하나만 살아남아요`)}<div class="ga-fuse" aria-hidden="true"><i></i></div><div class="ga-grid">${places.map((p, i) =>
       `<div class="ga-tile" id="ga-b${i}" style="border-top-width:8px;border-top-color:${color(i)}"><span class="bomb" aria-hidden="true">💣</span><span class="face">${p.e}</span><span class="nm">${esc(p.name)}</span></div>`).join("")}</div>`;
   }
   function playBomb() {
@@ -280,7 +280,7 @@
     const alive = places.map((_, i) => i);
     const round = () => {
       if (!root) return;
-      if (alive.length === 1) { const w = alive[0]; $(`#ga-b${w}`).classList.add("champ"); say(`살아남았다!! ${places[w].name}`); later(() => finish(w, `${places.length}곳 중 끝까지 살아남은 가게`), 500); return; }
+      if (alive.length === 1) { const w = alive[0]; $(`#ga-b${w}`).classList.add("champ"); say(`살아남았다!! ${places[w].name}`); later(() => finish(w, `${places.length}개 중 끝까지 살아남았어요`), 500); return; }
       const out = alive[Math.floor(Math.random() * alive.length)], fuseMs = reduce ? 0 : 2300 + Math.random() * 1500, t0 = performance.now();
       let k = Math.floor(Math.random() * alive.length), cur = -1;
       say(["불붙었다! 🔥", "째깍째깍…", "누구 손에서 터질까?", "빨리 넘겨!!"][Math.floor(Math.random() * 4)]);
@@ -295,7 +295,7 @@
           const stage = $(".ga-stage"); stage.classList.add("ga-shake"); later(() => stage.classList.remove("ga-shake"), 400);
           later(() => { b.classList.remove("has"); b.classList.add("out"); }, 120);
           alive.splice(alive.indexOf(out), 1);
-          say(`펑!!! ${places[out].name} 탈락 💥${alive.length > 1 ? ` (${alive.length}곳 남음)` : ""}`);
+          say(`펑!!! ${places[out].name} 탈락 💥${alive.length > 1 ? ` (${alive.length}개 남음)` : ""}`);
           later(round, reduce ? 0 : 1100); return;
         }
         // 마지막 순간엔 터질 가게 쪽으로 간다

@@ -24,6 +24,8 @@
   function beep(f, d = .07, type = "square", vol = .05, slide = 0) {
     if (!soundOn) return;
     try {
+      // 아이폰 무음 스위치를 따르도록(무음이면 소리 안 남). 사이트는 무음/진동 상태를 직접 읽을 수 없다
+      try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch {}
       ac = ac || new (window.AudioContext || window.webkitAudioContext)();
       const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
       o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);

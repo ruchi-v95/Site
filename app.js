@@ -115,8 +115,16 @@
     return [dist, cat && cat !== skip ? cat : ""].filter(Boolean).join(" · ");
   }
 
-  function routeUrl(p) {
+  // 도착지만 있는 카카오맵 링크 (공유용: 보내는 사람 위치를 넣지 않는다)
+  function destUrl(p) {
     return `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
+  }
+
+  // 길찾기: 출발지를 함께 넣어야 카카오맵에서 출발지가 비지 않는다. 위치를 모르면(강남역 대체) 도착지만.
+  function routeUrl(p) {
+    if (!loc || usingFallback) return destUrl(p);
+    const from = `${encodeURIComponent(locName || "내 위치")},${loc.y},${loc.x}`;
+    return `https://map.kakao.com/link/from/${from}/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
   function renderPick(label, p, query) {
@@ -151,7 +159,7 @@
 
   // 카톡·문자 등 휴대폰 공유 창으로 보내기. 공유 창이 없는 PC에서는 글을 복사한다.
   async function sharePick(btn, label, p) {
-    const link = p.place_url || routeUrl(p);
+    const link = p.place_url || destUrl(p);
     const text = `오늘은 ${label}! "${p.place_name}" 어때?\n${link}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com`;
     try {
       if (navigator.share) { await navigator.share({ title: "오땡뭐!", text }); return; }
@@ -185,7 +193,7 @@
       const meta = metaLine(q, word);
       li.innerHTML = `
         <div class="more-info">
-          <a class="more-name" href="${esc(q.place_url || routeUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
+          <a class="more-name" href="${esc(q.place_url || destUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
           ${meta ? `<span class="more-meta">${esc(meta)}</span>` : ""}
         </div>
         <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
@@ -253,6 +261,7 @@
   const FALLBACK = { x: 127.0276, y: 37.4979 }; // 강남역
   const locbar = $("#locbar"), locText = $("#loc-text"), locBtn = $("#loc-btn");
   let usingFallback = false;
+  let locName = null; // 길찾기 출발지 이름 (내 위치 또는 입력한 동네)
 
   function showLocbar(state) {
     locbar.hidden = false;
@@ -275,6 +284,7 @@
 
   function setLoc(next, label) {
     loc = next;
+    locName = label || "내 위치";
     usingFallback = false;
     locbar.hidden = true;
     if (label) showNotice(`${label} 근처에서 추천하고 있어요.`);

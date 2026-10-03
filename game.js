@@ -12,7 +12,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const SOUND_KEY = "wmm.sound";
 
-  let root = null, places = [], game = "race", busy = false, timers = [], raf = 0, opts = {};
+  let root = null, places = [], items = [], emojiFn = () => "🍽️", game = "race", busy = false, timers = [], raf = 0, opts = {};
   let wheelAngle = 0, bulbs = 0, ladder = null, ac = null, soundOn = true;
   try { soundOn = localStorage.getItem(SOUND_KEY) !== "off"; } catch {}
   const $ = (s) => root && root.querySelector(s);
@@ -32,18 +32,37 @@
     } catch {}
   }
 
+  const MAX = 8;
+  const sync = () => { places = items.map((p) => ({ name: p.place_name, e: emojiFn(p) })); };
+  const menuItem = (name, typed) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: !!typed });
+  const has = (name) => items.some((p) => p.place_name === name);
+
+  // o: { items, ideas, emojiOf, game, onChange(items), onGame(game), onPick(item, gameName, items) }
   function open(o) {
     close();
-    opts = o; places = o.places; game = GAMES[o.game] ? o.game : "race"; ladder = null;
+    opts = o; emojiFn = o.emojiOf || emojiFn; game = GAMES[o.game] ? o.game : "race"; ladder = null;
+    items = (o.items || []).slice(0, MAX);
+    // 아무것도 안 담았으면 메뉴 4개로 바로 할 수 있게 채워둔다
+    if (items.length < 2 && o.ideas) {
+      for (const m of [...o.ideas].sort(() => Math.random() - .5)) { if (items.length >= 4) break; if (!has(m)) items.push(menuItem(m)); }
+      changed();
+    }
+    sync();
     root = document.createElement("div");
     root.className = "od-arcade";
     root.setAttribute("role", "dialog");
     root.setAttribute("aria-modal", "true");
-    root.setAttribute("aria-label", "게임판 게임");
+    root.setAttribute("aria-label", "게임으로 정하기");
     root.innerHTML = `<div class="ga-wrap">
-      <div class="ga-top"><h2>🎮 후보 ${places.length}개</h2>
+      <div class="ga-top"><h2>🎮 게임으로 정하기</h2>
         <button class="ga-btn ga-sound" type="button" data-sound></button>
         <button class="ga-btn" type="button" data-close>✕ 닫기</button></div>
+      <section class="ga-cands" aria-label="후보">
+        <div class="ga-cands-head"><b>후보</b><small></small></div>
+        <div class="ga-chips"></div>
+        <form class="ga-add"><input name="q" maxlength="20" autocomplete="off" enterkeyhint="done" aria-label="메뉴나 가게 이름" placeholder="메뉴나 가게 이름 넣기" /><button class="ga-btn" type="submit">넣기</button></form>
+        <div class="ga-ideas" aria-label="메뉴 빨리 넣기"></div>
+      </section>
       <div class="ga-tabs" role="radiogroup" aria-label="게임 고르기">${Object.entries(GAMES).map(([k, g]) =>
         `<button type="button" role="radio" data-g="${k}"><b>${g.icon}</b>${g.name}</button>`).join("")}</div>
       <section class="ga-stage" aria-live="polite"><p class="ga-desc"></p><div class="ga-play"></div><button class="ga-btn hot ga-go" type="button"></button></section>
@@ -53,11 +72,47 @@
     document.documentElement.style.overflow = "hidden";
     $("[data-close]").onclick = close;
     $("[data-sound]").onclick = () => { soundOn = !soundOn; try { localStorage.setItem(SOUND_KEY, soundOn ? "on" : "off"); } catch {} paintSound(); if (soundOn) beep(660); };
-    $(".ga-tabs").onclick = (e) => { const b = e.target.closest("[data-g]"); if (!b || busy) return; game = b.dataset.g; beep(520, .05); $(".ga-out").innerHTML = ""; render(); };
+    $(".ga-tabs").onclick = (e) => {
+      const b = e.target.closest("[data-g]"); if (!b || busy) return;
+      game = b.dataset.g; beep(520, .05); $(".ga-out").innerHTML = ""; if (opts.onGame) opts.onGame(game); render();
+    };
+    $(".ga-chips").onclick = (e) => {
+      const b = e.target.closest("[data-del]"); if (!b || busy) return;
+      items.splice(Number(b.dataset.del), 1); edited();
+    };
+    $(".ga-add").onsubmit = (e) => {
+      e.preventDefault(); if (busy) return;
+      const f = e.currentTarget, name = f.q.value.trim().slice(0, 20);
+      if (name && !has(name) && items.length < MAX) { items.push(menuItem(name, true)); edited(); }
+      f.q.value = "";
+    };
+    $(".ga-ideas").onclick = (e) => {
+      const b = e.target.closest("button"); if (!b || busy) return;
+      if (b.hasAttribute("data-rand")) {
+        const pool = (opts.ideas || []).filter((m) => !has(m)).sort(() => Math.random() - .5);
+        items = items.filter((p) => !p.menu || p.typed); // 직접 쓴 메뉴와 담은 가게는 남긴다
+        const want = Math.min(MAX, Math.max(4, items.length + 2));
+        for (const m of pool) { if (items.length >= want) break; items.push(menuItem(m)); }
+      } else {
+        const m = b.dataset.menu, i = items.findIndex((p) => p.place_name === m);
+        if (i >= 0) items.splice(i, 1); else if (items.length < MAX) items.push(menuItem(m));
+      }
+      edited();
+    };
     $(".ga-go").onclick = start;
     root.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-    paintSound(); render();
+    paintSound(); renderCands(); render();
     $("[data-close]").focus();
+  }
+  function changed() { if (opts.onChange) opts.onChange(items.slice()); }
+  function edited() { beep(880, .05); sync(); changed(); $(".ga-out").innerHTML = ""; renderCands(); render(); }
+  function renderCands() {
+    $(".ga-cands-head small").textContent = `${items.length} / ${MAX}개`;
+    $(".ga-chips").innerHTML = items.length ? items.map((p, i) => `<span class="ga-chip" style="--dot:${color(i)}"><span aria-hidden="true">${places[i].e}</span>${esc(p.place_name)}<button type="button" data-del="${i}" aria-label="${esc(p.place_name)} 빼기">✕</button></span>`).join("")
+      : `<span class="ga-empty">아래에서 메뉴를 눌러 넣어보세요.</span>`;
+    $(".ga-ideas").innerHTML = `<button type="button" data-rand>🎲 메뉴 바꾸기</button>` + (opts.ideas || []).map((m) =>
+      `<button type="button" data-menu="${esc(m)}" class="${has(m) ? "on" : ""}">${emojiFn({ place_name: m })} ${esc(m)}</button>`).join("");
+    $(".ga-add button").disabled = items.length >= MAX;
   }
   function close() {
     stopAll();
@@ -67,13 +122,21 @@
 
   function render() {
     root.querySelectorAll(".ga-tabs [data-g]").forEach((b) => { b.setAttribute("aria-checked", String(b.dataset.g === game)); b.disabled = false; });
+    root.querySelector(".ga-cands").classList.remove("locked");
     $(".ga-desc").textContent = GAMES[game].desc;
+    if (places.length < 2) {
+      $(".ga-play").innerHTML = `<p class="ga-empty">후보를 2개 이상 넣으면 시작할 수 있어요.</p>`;
+      $(".ga-go").disabled = true; $(".ga-go").textContent = "후보를 2개 이상 넣어주세요"; return;
+    }
     $(".ga-go").disabled = false; $(".ga-go").textContent = GAMES[game].go;
     ({ race: drawRace, wheel: drawWheel, ladder: () => drawLadder(true), bomb: drawBomb })[game]();
   }
   function start() {
     if (busy) return;
+    if (places.length < 2) return;
     busy = true; $(".ga-out").innerHTML = "";
+    root.querySelector(".ga-cands").classList.add("locked");
+    $(".ga-stage").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     $(".ga-go").disabled = true; $(".ga-go").textContent = "두근두근…";
     root.querySelectorAll(".ga-tabs [data-g]").forEach((b) => (b.disabled = true));
     const hub = $(".ga-hub"); if (hub) hub.disabled = true;
@@ -96,7 +159,8 @@
     $(".ga-out").innerHTML = `<div class="ga-result"><div class="tro" aria-hidden="true">🏆</div><small>${esc(line)}</small>
       <strong>${p.e} 오늘은 ${esc(p.name)}!</strong>
       <div class="row"><button class="ga-btn hot" type="button" data-keep>채팅에 결과 남기기</button></div></div>`;
-    $("[data-keep]").onclick = () => { const cb = opts.onPick, g = game; opts.onClose = null; close(); if (cb) cb(i, GAMES[g].name); };
+    root.querySelector(".ga-cands").classList.remove("locked");
+    $("[data-keep]").onclick = () => { const cb = opts.onPick, g = game, all = items.slice(); opts.onClose = null; close(); if (cb) cb(all[i], GAMES[g].name, all); };
     $(".ga-out").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
     confetti();
   }

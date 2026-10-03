@@ -1,5 +1,4 @@
 /* 게임판 게임 화면 (오락실 스티커 느낌). 게임을 처음 열 때만 불러온다. */
-@import url("https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap");
 
 .od-arcade {
   --g-bg: #ffe9a8; --g-dot: #f5d77a; --g-panel: #fffdf5; --g-ink: #1d1a16; --g-muted: #6d6556;
@@ -29,7 +28,7 @@
 @keyframes od-zoom { from { transform: scale(.96); opacity: 0; } }
 .od-arcade .ga-wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 .od-arcade .ga-top { display: flex; align-items: center; gap: 8px; }
-.od-arcade .ga-top h2 { flex: 1; margin: 0; font-family: var(--g-display); font-weight: 400; font-size: 26px; text-shadow: 2px 2px 0 var(--c1); }
+.od-arcade .ga-top h2 { flex: 1; min-width: 0; margin: 0; font-family: var(--g-display); font-weight: 400; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 2px 2px 0 var(--c1); }
 .od-arcade .ga-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .od-arcade .ga-tabs button { font: inherit; border: 3px solid var(--g-ink); border-radius: 14px; background: var(--g-panel); color: var(--g-ink); padding: 6px 2px 4px; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 0; box-shadow: 3px 3px 0 var(--g-shadow); font-size: 13px; }
@@ -114,3 +113,20 @@
 @keyframes ga-cnt { from { transform: scale(2.2); opacity: 0; } 30% { transform: scale(1); opacity: 1; } to { opacity: 0; } }
 .od-arcade .ga-confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
 @media (prefers-reduced-motion: reduce) { .od-arcade, .od-arcade *, .od-arcade *::before, .od-arcade *::after { animation: none !important; transition: none !important; } }
+
+/* 후보 넣고 빼기 */
+.od-arcade .ga-cands { background: var(--g-panel); border: 3px solid var(--g-ink); border-radius: 18px; box-shadow: 5px 5px 0 var(--g-shadow); padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.od-arcade .ga-cands.locked { opacity: .55; pointer-events: none; }
+.od-arcade .ga-cands-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; }
+.od-arcade .ga-cands-head small { font-size: 13px; color: var(--g-muted); font-variant-numeric: tabular-nums; }
+.od-arcade .ga-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.od-arcade .ga-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 2px 3px 8px; border: 2.5px solid var(--g-ink); border-left: 8px solid var(--dot); border-radius: 999px; background: var(--g-panel); font-size: 15px; }
+.od-arcade .ga-chip button { border: 0; background: none; color: var(--g-muted); font: inherit; font-size: 13px; padding: 2px 6px; cursor: pointer; }
+.od-arcade .ga-empty { margin: 0; color: var(--g-muted); font-size: 14px; text-align: center; padding: 8px 0; }
+.od-arcade .ga-add { display: flex; gap: 8px; }
+.od-arcade .ga-add input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 8px 12px; border-radius: 12px; border: 3px solid var(--g-ink); background: var(--g-panel); color: var(--g-ink); }
+.od-arcade .ga-ideas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
+.od-arcade .ga-ideas::-webkit-scrollbar { display: none; }
+.od-arcade .ga-ideas button { flex: none; font: inherit; font-size: 14px; border: 2px solid var(--g-ink); border-radius: 999px; background: var(--g-panel); color: var(--g-ink); padding: 5px 10px; cursor: pointer; }
+.od-arcade .ga-ideas button.on { background: var(--c2); color: #1d1a16; border-color: #1d1a16; }
+.od-arcade .ga-ideas [data-rand] { background: var(--g-ink); color: var(--g-panel); }

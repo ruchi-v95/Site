@@ -16,7 +16,6 @@
   };
   const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게", "아무거나"];
   const CHEAP_CHIP = "💰 착한가격";
-  const GAME_CHIP = "🎮 게임으로 정하기";
   // 날씨 맞춤: 지금 날씨에 어울리는 메뉴를 상황 버튼 맨 앞에 보여준다 (기상청 초단기실황)
   const WEATHER = {
     비: { chip: "☔ 비 오는 날", line: "비가 오네요. 뜨끈한 국물이나 전 어때요?", foods: ["칼국수", "짬뽕", "파전", "부대찌개", "감자탕", "국밥", "수제비"] },
@@ -101,12 +100,11 @@
     const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
     const w = weather && WEATHER[weather];
     fillChips($("#chips-cat"), Object.keys(CATEGORIES), (c) => ask(c, { category: c }));
-    const sit = [...(w ? [w.chip] : []), situations[0], GAME_CHIP, CHEAP_CHIP, ...situations.slice(1)];
+    const sit = [...(w ? [w.chip] : []), situations[0], CHEAP_CHIP, ...situations.slice(1)];
     fillChips($("#chips-sit"), sit, (c) =>
-      w && c === w.chip ? ask(c, { foods: w.foods }) : c === CHEAP_CHIP ? ask(c, { cheap: true }) : c === GAME_CHIP ? openSheet() : ask(c, { situation: c }));
+      w && c === w.chip ? ask(c, { foods: w.foods }) : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
     if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
     [...$("#chips-sit").children].find((b) => b.textContent === CHEAP_CHIP)?.classList.add("chip-cheap");
-    [...$("#chips-sit").children].find((b) => b.textContent === GAME_CHIP)?.classList.add("chip-game");
   }
 
   // 위치를 알면 그 동네 날씨를 한 번 가져온다. 키가 없거나 실패하면 조용히 넘어간다.
@@ -174,7 +172,7 @@
     return `https://map.kakao.com/link/from/${from}/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
-  function renderPick(label, p, query, others = [], pool = []) {
+  function renderPick(label, p, query, others = []) {
     const el = document.createElement("article");
     el.className = "pick";
     const cat = lastCategory(p);
@@ -195,8 +193,7 @@
         <button type="button" data-share>공유하기</button>
         <button type="button" data-again>다시 뽑기</button>
         <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
-        <button type="button" class="tray-add${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? "✓ 게임판에 담음" : "🎮 게임판에 담기"}</button>
-        <button type="button" class="tray-add" data-rand>🎲 3곳 랜덤 담기</button>
+        <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? "✓ 게임 후보에 담았어요" : "🎮 게임 후보에 담기"}</button>
         ${others.length && !p.demo ? `<button type="button" class="wide" data-poll>👥 친구랑 투표로 고르기 (${others.length + 1}곳)</button>` : ""}
       </div>
       <ul class="more" hidden></ul>`;
@@ -209,15 +206,7 @@
     const pollBtn = el.querySelector("[data-poll]");
     if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, label, [p, ...others]);
     const trayBtn = el.querySelector("[data-tray]");
-    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, "✓ 게임판에 담음"); };
-    const randBtn = el.querySelector("[data-rand]");
-    randBtn.onclick = () => {
-      const left = shuffle(pool.filter((q) => q.id !== p.id && !inTray(q))).slice(0, 3);
-      if (!left.length) { randBtn.textContent = "더 담을 가게가 없어요"; randBtn.disabled = true; return; }
-      let n = 0;
-      for (const q of left) if (addTray(q)) n += 1;
-      if (n) randBtn.textContent = `✓ ${n}곳 더 담음`;
-    };
+    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, "✓ 게임 후보에 담았어요"); };
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
@@ -334,7 +323,7 @@
           <a class="more-name" href="${esc(q.place_url || destUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
           ${meta ? `<span class="more-meta">${esc(meta)}${q.menus && q.menus[0] ? ` · ${esc(q.menus[0][0])} <b>${Number(q.menus[0][1]).toLocaleString()}원</b>` : ""}</span>` : ""}
         </div>
-        <button type="button" class="more-add${inTray(q) ? " on" : ""}" aria-label="${esc(q.place_name)} 게임판에 담기">${inTray(q) ? "✓ 담음" : "+ 담기"}</button>
+        <button type="button" class="more-add${inTray(q) ? " on" : ""}" aria-label="${esc(q.place_name)} 게임 후보에 담기">${inTray(q) ? "✓ 담음" : "+ 담기"}</button>
         <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
       const add = li.querySelector(".more-add");
       add.onclick = () => { if (addTray(q)) markAdded(add, "✓ 담음"); };
@@ -616,7 +605,7 @@
       await spin(typing, shuffle([...(ctx.pool || []), p.place_name]), stale);
       if (stale()) return typing.remove();
       typing.remove();
-      renderPick(label, p, query, (ctx.fresh || []).filter((q) => q.id !== p.id).slice(0, 2), ctx.fresh || []);
+      renderPick(label, p, query, (ctx.fresh || []).filter((q) => q.id !== p.id).slice(0, 2));
       return;
     }
     typing.remove();
@@ -690,7 +679,7 @@
       await spin(typing, shuffle(fresh.slice(0, 8).map((q) => q.place_name)), stale);
       if (stale()) return typing.remove();
       typing.remove();
-      renderPick(p.cat, p, "착한가격", fresh.filter((q) => q.id !== p.id).slice(0, 2), fresh.slice(0, 20));
+      renderPick(p.cat, p, "착한가격", fresh.filter((q) => q.id !== p.id).slice(0, 2));
       return;
     }
     typing.remove();
@@ -738,18 +727,18 @@
   }
 
 
-  // ---------- 게임판 ----------
-  // 카드·더보기·랜덤 담기·직접 입력으로 가게를 담고, 게임으로 하나를 고른다. 이 기기에만 저장한다.
+  // ---------- 게임으로 정하기 ----------
+  // 검색창 위 버튼으로 바로 게임 화면을 연다. 후보는 게임 화면에서 메뉴를 넣거나, 카드·더보기에서 가게를 담는다. 이 기기에만 저장한다.
   const trayBtn = $("#tray");
   const inTray = (p) => tray.some((q) => (p.id && q.id === p.id) || q.place_name === p.place_name);
   function saveTray() { try { localStorage.setItem(TRAY_KEY, JSON.stringify(tray)); } catch {} }
   function slim(p) {
     return { id: p.id, place_name: p.place_name, category_name: p.category_name || (p.cat ? `음식점 > ${p.cat}` : ""), x: p.x, y: p.y,
-      distance: p.distance, place_url: p.place_url, road_address_name: p.road_address_name || p.address_name || "", phone: p.phone, menu: p.menu };
+      distance: p.distance, place_url: p.place_url, road_address_name: p.road_address_name || p.address_name || "", phone: p.phone, menu: p.menu, typed: p.typed };
   }
   function addTray(p) {
     if (inTray(p)) return true;
-    if (tray.length >= TRAY_MAX) { bubble(`게임판에는 ${TRAY_MAX}개까지 담을 수 있어요. 게임판을 열어 몇 개를 빼주세요.`); return false; }
+    if (tray.length >= TRAY_MAX) { bubble(`게임 후보는 ${TRAY_MAX}개까지예요. "🎮 게임으로 정하기"를 눌러 몇 개를 빼주세요.`); return false; }
     tray.push(slim(p));
     saveTray(); renderTray(true);
     return true;
@@ -757,114 +746,39 @@
   function markAdded(btn, text) { btn.textContent = text; btn.classList.add("on"); }
   function renderTray(bump) {
     if (!trayBtn) return;
-    trayBtn.hidden = !tray.length;
-    if (!tray.length) return;
-    trayBtn.innerHTML = `<span class="tray-faces" aria-hidden="true">${tray.slice(0, 3).map((q) => `<span>${emojiOf(q)}</span>`).join("")}</span>
-      <span>${tray.length}개</span><span class="tray-go">${tray.length >= 2 ? "🎮 게임 ›" : "1개 더"}</span>`;
-    trayBtn.setAttribute("aria-label", `게임판 열기 (${tray.length}개 담김)`);
+    trayBtn.innerHTML = `<span aria-hidden="true">🎮</span> 게임으로 정하기${tray.length ? `<span class="tray-n">${tray.length}</span>` : ""}`;
+    trayBtn.setAttribute("aria-label", tray.length ? `게임으로 정하기 (후보 ${tray.length}개 담김)` : "게임으로 정하기");
     if (bump) { trayBtn.classList.remove("bump"); void trayBtn.offsetWidth; trayBtn.classList.add("bump"); }
   }
-  trayBtn && trayBtn.addEventListener("click", openSheet);
+  trayBtn && trayBtn.addEventListener("click", startGame);
 
   let lastGame = "race";
   try { if (["race", "wheel", "ladder", "bomb"].includes(localStorage.getItem(GAME_KEY))) lastGame = localStorage.getItem(GAME_KEY); } catch {}
   const MENU_IDEAS = ["라면", "김밥", "짜장면", "짬뽕", "돈까스", "국밥", "치킨", "피자", "햄버거", "초밥", "떡볶이", "마라탕", "냉면", "제육볶음"];
-  const GAME_LIST = [["race", "🏁", "달리기"], ["wheel", "🎡", "돌림판"], ["ladder", "🪜", "사다리"], ["bomb", "💣", "폭탄"]];
-
-  function openSheet() {
-    closeSheet();
-    const back = document.createElement("div");
-    back.className = "sheet-back";
-    back.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-h">
-      <div class="sheet-grab" aria-hidden="true"></div>
-      <div class="sheet-head"><h2 id="sheet-h">🎮 게임판</h2><small></small><button type="button" class="sheet-x" aria-label="닫기">✕</button></div>
-      <ul class="sheet-items"></ul>
-      <form class="sheet-add"><input name="q" aria-label="메뉴나 가게 이름" placeholder="라면, 김밥처럼 메뉴나 가게 이름" maxlength="20" autocomplete="off" enterkeyhint="done" /><button type="submit">넣기</button></form>
-      <div class="sheet-menus" aria-label="메뉴 빨리 넣기">${MENU_IDEAS.map((m) => `<button type="button" data-menu="${esc(m)}">${emojiOf({ place_name: m })} ${esc(m)}</button>`).join("")}<button type="button" data-menu-rand>🎲 랜덤 4개</button></div>
-      <p class="sheet-fine">메뉴가 뽑히면 근처에서 그 메뉴를 파는 가게를 찾아드려요. 추천 카드의 "🎮 게임판에 담기"로 실제 가게를 담아도 돼요.</p>
-      <p class="sheet-label">게임 고르기</p>
-      <div class="sheet-games" role="radiogroup" aria-label="게임">${GAME_LIST.map(([k, e, n]) => `<button type="button" role="radio" data-g="${k}"><b>${e}</b>${n}</button>`).join("")}</div>
-      <button type="button" class="sheet-start"></button>
-      <button type="button" class="sheet-clear">게임판 비우기</button>
-    </div>`;
-    document.body.appendChild(back);
-    document.documentElement.style.overflow = "hidden";
-    const sh = back.querySelector(".sheet");
-    const paint = () => {
-      sh.querySelector(".sheet-head small").textContent = `${tray.length} / ${TRAY_MAX}개`;
-      sh.querySelector(".sheet-items").innerHTML = tray.length ? tray.map((q, i) => `<li${q.menu ? ' class="is-menu"' : ""}><span class="sheet-em" aria-hidden="true">${emojiOf(q)}</span>
-        <div class="sheet-info"><b>${esc(q.place_name)}</b>${q.menu ? "" : `<span>${esc(metaLine(q) || q.road_address_name || "")}</span>`}</div>
-        <button type="button" data-del="${i}" aria-label="${esc(q.place_name)} 빼기">✕</button></li>`).join("")
-        : `<li class="sheet-empty">아래에 먹고 싶은 메뉴를 넣거나 메뉴 버튼을 눌러 2개 이상 담아보세요.</li>`;
-      sh.querySelectorAll("[data-menu]").forEach((b) => b.classList.toggle("on", inTray({ place_name: b.dataset.menu })));
-      sh.querySelectorAll("[data-g]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === lastGame)));
-      const st = sh.querySelector(".sheet-start"), g = GAME_LIST.find(([k]) => k === lastGame);
-      st.disabled = tray.length < 2;
-      st.textContent = tray.length < 2 ? "2개 이상 담으면 시작할 수 있어요" : `${g[1]} ${g[2]} 시작 (${tray.length}개)`;
-      sh.querySelector(".sheet-add button").disabled = tray.length >= TRAY_MAX;
-      renderTray();
-    };
-    sh.querySelector(".sheet-items").onclick = (e) => {
-      const b = e.target.closest("[data-del]"); if (!b) return;
-      tray.splice(Number(b.dataset.del), 1); saveTray(); paint();
-    };
-    sh.querySelector(".sheet-games").onclick = (e) => {
-      const b = e.target.closest("[data-g]"); if (!b) return;
-      lastGame = b.dataset.g; try { localStorage.setItem(GAME_KEY, lastGame); } catch {}
-      paint();
-    };
-    const addMenu = (name) => addTray({ id: `menu-${name}`, place_name: name, menu: true });
-    const addForm = sh.querySelector(".sheet-add");
-    addForm.onsubmit = (e) => {
-      e.preventDefault();
-      const name = addForm.q.value.trim().slice(0, 20);
-      if (!name) return;
-      addMenu(name);
-      addForm.q.value = "";
-      paint();
-    };
-    sh.querySelector(".sheet-menus").onclick = (e) => {
-      const b = e.target.closest("button"); if (!b) return;
-      if (b.hasAttribute("data-menu-rand")) {
-        shuffle(MENU_IDEAS.filter((m) => !inTray({ place_name: m }))).slice(0, Math.min(4, TRAY_MAX - tray.length)).forEach(addMenu);
-      } else {
-        const m = b.dataset.menu, i = tray.findIndex((q) => q.place_name === m);
-        if (i >= 0) { tray.splice(i, 1); saveTray(); } else addMenu(m);
-      }
-      paint();
-    };
-    sh.querySelector(".sheet-start").onclick = () => { closeSheet(); startGame(); };
-    sh.querySelector(".sheet-clear").onclick = () => { tray = []; saveTray(); renderTray(); closeSheet(); };
-    sh.querySelector(".sheet-x").onclick = closeSheet;
-    back.addEventListener("click", (e) => { if (e.target === back) closeSheet(); });
-    back.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
-    paint();
-    sh.querySelector(".sheet-x").focus();
-  }
-  function closeSheet() {
-    const b = document.querySelector(".sheet-back");
-    if (b) { b.remove(); document.documentElement.style.overflow = ""; }
-  }
 
   // 게임 파일은 처음 열 때만 불러온다
   let gameLoad = null;
   function loadGame() {
     if (window.OdGame) return Promise.resolve();
-    return gameLoad || (gameLoad = new Promise((ok, fail) => {
-      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/game.css"; document.head.appendChild(l);
-      const s = document.createElement("script"); s.src = "/game.js"; s.onload = ok; s.onerror = () => { gameLoad = null; fail(); }; document.head.appendChild(s);
-    }));
+    if (gameLoad) return gameLoad;
+    // 글꼴은 기다리지 않고(없으면 기본 글꼴), 게임 화면 모양(css)과 코드(js)는 다 받은 뒤 연다
+    const font = document.createElement("link");
+    font.rel = "stylesheet"; font.href = "https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap";
+    document.head.appendChild(font);
+    const get = (el) => new Promise((ok, fail) => { el.onload = ok; el.onerror = fail; document.head.appendChild(el); });
+    const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/game.css" });
+    const js = Object.assign(document.createElement("script"), { src: "/game.js" });
+    return (gameLoad = Promise.all([get(css), get(js)]).catch((e) => { gameLoad = null; throw e; }));
   }
   async function startGame() {
-    if (tray.length < 2) return openSheet();
     trayBtn.disabled = true;
     try { await loadGame(); } catch { trayBtn.disabled = false; bubble("게임을 불러오지 못했어요. 잠시 후 다시 눌러주세요."); return; }
     trayBtn.disabled = false;
-    const list = tray.slice();
     window.OdGame.open({
-      places: list.map((q) => ({ name: q.place_name, e: emojiOf(q) })),
-      game: lastGame,
-      onPick: (i, gameName) => renderGameResult(list[i], gameName, list),
+      items: tray.slice(), ideas: MENU_IDEAS, emojiOf, game: lastGame,
+      onChange: (list) => { tray = list.map(slim); saveTray(); renderTray(); },
+      onGame: (g) => { lastGame = g; try { localStorage.setItem(GAME_KEY, g); } catch {} },
+      onPick: (p, gameName, list) => renderGameResult(p, gameName, list),
     });
   }
 

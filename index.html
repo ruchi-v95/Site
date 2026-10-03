@@ -53,7 +53,10 @@
     <section id="chat" class="chat" aria-live="polite"></section>
 
     <div class="dock">
-    <div id="mode" class="mode" role="radiogroup" aria-label="이동 방법"></div>
+    <div class="dock-top">
+      <div id="mode" class="mode" role="radiogroup" aria-label="이동 방법"></div>
+      <button id="tray" class="tray" type="button" hidden aria-label="게임판 열기"></button>
+    </div>
     <form id="ask" class="ask" autocomplete="off">
       <input id="q" type="text" inputmode="search" enterkeyhint="send"
              placeholder="예: 중식, 국밥, 비 오는 날" aria-label="먹고 싶은 것" />

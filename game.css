@@ -1,0 +1,116 @@
+/* 게임판 게임 화면 (오락실 스티커 느낌). 게임을 처음 열 때만 불러온다. */
+@import url("https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap");
+
+.od-arcade {
+  --g-bg: #ffe9a8; --g-dot: #f5d77a; --g-panel: #fffdf5; --g-ink: #1d1a16; --g-muted: #6d6556;
+  --g-track: #e7c48f; --g-track2: #dcb57c; --g-grass: #7cc36a; --g-shadow: #1d1a16;
+  --c1: #ff5a36; --c2: #ffb020; --c3: #20b2a0; --c4: #4c7cf0; --c5: #b25ce0; --c6: #f0609a; --c7: #6fb83f; --c8: #9b6b52;
+  --g-font: "Jua", -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --g-display: "Black Han Sans", "Jua", -apple-system, "Apple SD Gothic Neo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .od-arcade {
+    --g-bg: #1b1710; --g-dot: #2a2418; --g-panel: #26211a; --g-ink: #f6ecd6; --g-muted: #b9ad94;
+    --g-track: #4a3c2a; --g-track2: #42351f; --g-grass: #3f7a34; --g-shadow: #000000;
+  }
+}
+:root[data-theme="dark"] .od-arcade {
+  --g-bg: #1b1710; --g-dot: #2a2418; --g-panel: #26211a; --g-ink: #f6ecd6; --g-muted: #b9ad94;
+  --g-track: #4a3c2a; --g-track2: #42351f; --g-grass: #3f7a34; --g-shadow: #000000;
+}
+
+.od-arcade {
+  position: fixed; inset: 0; z-index: 50; overflow-y: auto; overscroll-behavior: contain;
+  font-family: var(--g-font); color: var(--g-ink); word-break: keep-all;
+  background-color: var(--g-bg); background-image: radial-gradient(var(--g-dot) 2px, transparent 2.5px); background-size: 18px 18px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  animation: od-zoom .25s ease;
+}
+@keyframes od-zoom { from { transform: scale(.96); opacity: 0; } }
+.od-arcade .ga-wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.od-arcade .ga-top { display: flex; align-items: center; gap: 8px; }
+.od-arcade .ga-top h2 { flex: 1; margin: 0; font-family: var(--g-display); font-weight: 400; font-size: 26px; text-shadow: 2px 2px 0 var(--c1); }
+.od-arcade .ga-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.od-arcade .ga-tabs button { font: inherit; border: 3px solid var(--g-ink); border-radius: 14px; background: var(--g-panel); color: var(--g-ink); padding: 6px 2px 4px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 0; box-shadow: 3px 3px 0 var(--g-shadow); font-size: 13px; }
+.od-arcade .ga-tabs button b { font-size: 22px; line-height: 1.2; }
+.od-arcade .ga-tabs button[aria-checked="true"] { background: var(--c1); color: #fff; transform: translateY(-3px) rotate(-2deg); }
+.od-arcade .ga-tabs button:disabled { cursor: default; }
+.od-arcade .ga-btn { font: inherit; font-size: 15px; padding: 8px 12px; border-radius: 12px; border: 3px solid var(--g-ink); background: var(--g-panel); color: var(--g-ink);
+  box-shadow: 3px 3px 0 var(--g-shadow); cursor: pointer; white-space: nowrap; }
+.od-arcade .ga-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
+.od-arcade .ga-btn.hot { background: var(--c1); color: #fff; }
+.od-arcade .ga-btn:disabled { opacity: .5; cursor: default; }
+.od-arcade .ga-sound { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 18px; }
+.od-arcade button:focus-visible { outline: 3px dashed var(--c1); outline-offset: 3px; }
+.od-arcade .ga-stage { background: var(--g-panel); border: 3px solid var(--g-ink); border-radius: 18px; box-shadow: 5px 5px 0 var(--g-shadow); padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.od-arcade .ga-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--g-muted); }
+.od-arcade .ga-go { width: 100%; font-family: var(--g-display); font-size: 21px; padding: 10px; }
+.od-arcade .ga-shake { animation: ga-shake .4s; }
+.od-arcade .ga-mc { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.od-arcade .ga-mc .mic { font-size: 22px; }
+.od-arcade .ga-mc .say { flex: 1; min-width: 0; background: var(--g-ink); color: var(--g-panel); border-radius: 12px; padding: 7px 10px; font-size: 14px; }
+
+/* 달리기 */
+.od-arcade .ga-track { border: 3px solid var(--g-ink); border-radius: 12px; overflow: hidden; background: var(--g-grass); padding: 4px 0; }
+.od-arcade .ga-lane { position: relative; height: 42px; background: var(--g-track); border-top: 2px dashed rgba(255,255,255,.55); }
+.od-arcade .ga-lane:nth-child(even) { background: var(--g-track2); }
+.od-arcade .ga-lane:first-child { border-top: 0; }
+.od-arcade .ga-lane::after { content: ""; position: absolute; right: 22px; top: 0; bottom: 0; width: 12px; background: conic-gradient(#111 25%, #fff 0 50%, #111 0 75%, #fff 0) 0 0 / 12px 12px; }
+.od-arcade .ga-runner { position: absolute; left: 0; top: 50%; display: flex; align-items: center; will-change: transform; }
+.od-arcade .ga-runner .body { position: relative; font-size: 27px; line-height: 1; }
+.od-arcade .running .ga-runner .body { animation: ga-bob .28s ease-in-out infinite alternate; }
+@keyframes ga-bob { from { transform: translateY(-3px) rotate(-6deg); } to { transform: translateY(2px) rotate(6deg); } }
+.od-arcade .ga-runner .crown { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 14px; opacity: 0; }
+.od-arcade .ga-runner.lead .crown { opacity: 1; }
+.od-arcade .ga-runner .fx { position: absolute; right: 100%; font-size: 16px; }
+.od-arcade .ga-runner .tagn { margin-left: 3px; font-size: 11px; background: var(--g-panel); border: 2px solid var(--g-ink); border-radius: 7px; padding: 0 4px; white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.od-arcade .ga-board { text-align: center; font-size: 13px; min-height: 18px; }
+
+/* 돌림판 */
+.od-arcade .ga-wheel { position: relative; width: min(100%, 320px); aspect-ratio: 1; margin: 10px auto 0; }
+.od-arcade .ga-wheel canvas { width: 100%; height: 100%; display: block; }
+.od-arcade .ga-pointer { position: absolute; left: 50%; top: -12px; width: 30px; height: 40px; margin-left: -15px; transform-origin: 50% 11px; z-index: 2; }
+.od-arcade .ga-pointer svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.od-arcade .ga-pointer.flick { animation: ga-flick .12s ease-out; }
+@keyframes ga-flick { 50% { transform: rotate(-22deg); } }
+.od-arcade .ga-hub { position: absolute; inset: 0; margin: auto; width: 72px; height: 72px; border-radius: 50%; background: var(--c1); color: #fff; border: 4px solid var(--g-ink);
+  font-family: var(--g-display); font-size: 20px; cursor: pointer; z-index: 2; box-shadow: 3px 3px 0 var(--g-shadow); }
+.od-arcade .ga-hub:disabled { cursor: default; }
+
+/* 사다리 */
+.od-arcade .ga-ladder svg { display: block; width: 100%; height: auto; overflow: visible; }
+.od-arcade .ga-slot.flip { animation: ga-flipy .5s ease; }
+@keyframes ga-flipy { 50% { transform: scaleX(0); } }
+
+/* 폭탄 */
+.od-arcade .ga-fuse { height: 10px; border: 3px solid var(--g-ink); border-radius: 999px; overflow: hidden; background: var(--g-panel); }
+.od-arcade .ga-fuse i { display: block; height: 100%; background: repeating-linear-gradient(-45deg, var(--c1) 0 8px, var(--c2) 8px 16px); transform-origin: left; }
+.od-arcade .ga-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.od-arcade .ga-tile { position: relative; border: 3px solid var(--g-ink); border-radius: 14px; background: var(--g-panel); padding: 10px 6px 8px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 3px 3px 0 var(--g-shadow); min-width: 0; transition: opacity .3s, filter .3s; }
+.od-arcade .ga-tile .face { font-size: 30px; line-height: 1; }
+.od-arcade .ga-tile .nm { font-size: 14px; overflow-wrap: anywhere; }
+.od-arcade .ga-tile .bomb { position: absolute; top: -10px; right: -4px; font-size: 26px; opacity: 0; transform: scale(.4); transition: opacity .08s, transform .08s; }
+.od-arcade .ga-tile.has .bomb { opacity: 1; transform: scale(1) rotate(-12deg); }
+.od-arcade .ga-tile.has { background: color-mix(in srgb, var(--c1) 18%, var(--g-panel)); }
+.od-arcade .ga-tile.boom { animation: ga-shake .45s; }
+.od-arcade .ga-tile.out { opacity: .4; filter: grayscale(1); }
+.od-arcade .ga-tile.champ { transform: rotate(-3deg) scale(1.05); background: var(--c2); color: #1d1a16; border-color: #1d1a16; }
+@keyframes ga-shake { 20% { transform: translate(-6px, 2px) rotate(-4deg); } 40% { transform: translate(6px, -2px) rotate(4deg); } 60% { transform: translate(-4px, 1px); } 80% { transform: translate(3px, 0); } }
+
+/* 결과 */
+.od-arcade .ga-result { background: var(--c2); color: #1d1a16; border: 3px solid #1d1a16; border-radius: 18px; box-shadow: 5px 5px 0 #1d1a16; padding: 16px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; animation: ga-land .6s cubic-bezier(.3,1.6,.5,1); }
+.od-arcade .ga-result .tro { font-size: 42px; line-height: 1; }
+.od-arcade .ga-result strong { font-family: var(--g-display); font-weight: 400; font-size: 28px; line-height: 1.2; overflow-wrap: anywhere; }
+.od-arcade .ga-result .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.od-arcade .ga-result .ga-btn { color: #1d1a16; background: #fffdf5; border-color: #1d1a16; box-shadow: 3px 3px 0 #1d1a16; }
+.od-arcade .ga-result .ga-btn.hot { background: var(--c1); color: #fff; }
+@keyframes ga-land { from { transform: translateY(-24px) scale(.85); opacity: 0; } }
+
+.od-arcade .ga-count { position: fixed; inset: 0; display: grid; place-items: center; z-index: 2; pointer-events: none; }
+.od-arcade .ga-count b { font-family: var(--g-display); font-weight: 400; font-size: 110px; color: var(--c1); -webkit-text-stroke: 3px var(--g-ink); text-shadow: 5px 5px 0 var(--g-ink); animation: ga-cnt .65s ease-out forwards; }
+@keyframes ga-cnt { from { transform: scale(2.2); opacity: 0; } 30% { transform: scale(1); opacity: 1; } to { opacity: 0; } }
+.od-arcade .ga-confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+@media (prefers-reduced-motion: reduce) { .od-arcade, .od-arcade *, .od-arcade *::before, .od-arcade *::after { animation: none !important; transition: none !important; } }

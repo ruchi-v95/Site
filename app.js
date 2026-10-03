@@ -34,6 +34,14 @@
       icon: '<path d="M5 17h14v-5l-2-5H7l-2 5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>' },
   };
   const MODE_KEY = "wmm.mode";
+  // 게임판: 가게를 담아 게임(달리기·돌림판·사다리·폭탄)으로 하나를 고른다
+  const TRAY_KEY = "wmm.tray";
+  const TRAY_MAX = 8;
+  const GAME_KEY = "wmm.game";
+  const EMOJI = [[/칼국수|우동|냉면|라멘|라면|국수|소바|쌀국수/, "🍜"], [/중식|중국|반점|짜장|짬뽕|만두|마라|양꼬치/, "🥟"], [/김밥|도시락/, "🍱"], [/치킨|닭/, "🍗"],
+    [/버거|햄버거/, "🍔"], [/피자/, "🍕"], [/일식|초밥|스시|회|돈까스|돈가스|카츠/, "🍣"], [/떡볶이|분식/, "🌶️"], [/죽/, "🥣"], [/고기|삼겹|돼지|갈비|보쌈|족발|곱창/, "🥩"],
+    [/국밥|탕|찌개|해장|설렁/, "🍲"], [/카페|커피|다방|디저트/, "🧋"], [/양식|파스타|스테이크/, "🍝"], [/술집|호프|포차/, "🍺"], [/한식|백반|식당/, "🍚"]];
+  const emojiOf = (p) => (EMOJI.find(([r]) => r.test(`${p.place_name || ""} ${p.category_name || ""} ${p.cat || ""}`)) || [0, "🍽️"])[1];
   // 카카오는 거리순일 때 이름·분류에 검색어가 없는 가게도 섞어 준다. 이름이나 분류에 이 말이 있는 가게만 고른다.
   const ALIASES = {
     // 카카오는 메뉴 정보를 주지 않아서, 분식집처럼 대부분 그 메뉴를 파는 분류를 함께 넣는다
@@ -62,6 +70,8 @@
   let run = 0;         // 마지막 추천 요청 번호. 빠르게 여러 번 누르면 마지막 것만 보여준다
   // 로컬에서 서버 없이 열 때만 예시 가게를 쓴다. 실제 사이트에서는 실패를 그대로 알린다
   const DEMO_OK = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
+  let tray = [];
+  try { tray = (JSON.parse(localStorage.getItem(TRAY_KEY)) || []).filter((q) => q && q.place_name).slice(0, TRAY_MAX); } catch {}
   let travel = "walk";
   try { if (MODES[localStorage.getItem(MODE_KEY)]) travel = localStorage.getItem(MODE_KEY); } catch {}
   const km = (m) => `${m / 1000}km`;
@@ -151,17 +161,18 @@
 
   // 도착지만 있는 카카오맵 링크 (공유용: 보내는 사람 위치를 넣지 않는다)
   function destUrl(p) {
+    if (!p.x || !p.y) return `https://map.kakao.com/?q=${encodeURIComponent(p.place_name)}`;
     return `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
   // 길찾기: 출발지를 함께 넣어야 카카오맵에서 출발지가 비지 않는다. 위치를 모르면(강남역 대체) 도착지만.
   function routeUrl(p) {
-    if (!loc || usingFallback) return destUrl(p);
+    if (!loc || usingFallback || !p.x || !p.y) return destUrl(p);
     const from = `${encodeURIComponent(locName || "내 위치")},${loc.y},${loc.x}`;
     return `https://map.kakao.com/link/from/${from}/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
-  function renderPick(label, p, query, others = []) {
+  function renderPick(label, p, query, others = [], pool = []) {
     const el = document.createElement("article");
     el.className = "pick";
     const cat = lastCategory(p);
@@ -182,6 +193,8 @@
         <button type="button" data-share>공유하기</button>
         <button type="button" data-again>다시 뽑기</button>
         <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
+        <button type="button" class="tray-add${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? "✓ 게임판에 담음" : "🎮 게임판에 담기"}</button>
+        <button type="button" class="tray-add" data-rand>🎲 3곳 랜덤 담기</button>
         ${others.length && !p.demo ? `<button type="button" class="wide" data-poll>👥 친구랑 투표로 고르기 (${others.length + 1}곳)</button>` : ""}
       </div>
       <ul class="more" hidden></ul>`;
@@ -193,6 +206,16 @@
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
     const pollBtn = el.querySelector("[data-poll]");
     if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, label, [p, ...others]);
+    const trayBtn = el.querySelector("[data-tray]");
+    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, "✓ 게임판에 담음"); };
+    const randBtn = el.querySelector("[data-rand]");
+    randBtn.onclick = () => {
+      const left = shuffle(pool.filter((q) => q.id !== p.id && !inTray(q))).slice(0, 3);
+      if (!left.length) { randBtn.textContent = "더 담을 가게가 없어요"; randBtn.disabled = true; return; }
+      let n = 0;
+      for (const q of left) if (addTray(q)) n += 1;
+      if (n) randBtn.textContent = `✓ ${n}곳 더 담음`;
+    };
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
@@ -309,7 +332,10 @@
           <a class="more-name" href="${esc(q.place_url || destUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
           ${meta ? `<span class="more-meta">${esc(meta)}${q.menus && q.menus[0] ? ` · ${esc(q.menus[0][0])} <b>${Number(q.menus[0][1]).toLocaleString()}원</b>` : ""}</span>` : ""}
         </div>
+        <button type="button" class="more-add${inTray(q) ? " on" : ""}" aria-label="${esc(q.place_name)} 게임판에 담기">${inTray(q) ? "✓ 담음" : "+ 담기"}</button>
         <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
+      const add = li.querySelector(".more-add");
+      add.onclick = () => { if (addTray(q)) markAdded(add, "✓ 담음"); };
       ul.appendChild(li);
     }
     ul.hidden = ul.children.length === 0;
@@ -588,7 +614,7 @@
       await spin(typing, shuffle([...(ctx.pool || []), p.place_name]), stale);
       if (stale()) return typing.remove();
       typing.remove();
-      renderPick(label, p, query, (ctx.fresh || []).filter((q) => q.id !== p.id).slice(0, 2));
+      renderPick(label, p, query, (ctx.fresh || []).filter((q) => q.id !== p.id).slice(0, 2), ctx.fresh || []);
       return;
     }
     typing.remove();
@@ -662,7 +688,7 @@
       await spin(typing, shuffle(fresh.slice(0, 8).map((q) => q.place_name)), stale);
       if (stale()) return typing.remove();
       typing.remove();
-      renderPick(p.cat, p, "착한가격", fresh.filter((q) => q.id !== p.id).slice(0, 2));
+      renderPick(p.cat, p, "착한가격", fresh.filter((q) => q.id !== p.id).slice(0, 2), fresh.slice(0, 20));
       return;
     }
     typing.remove();
@@ -707,6 +733,165 @@
     }
     ctx.pages.set(query, MAX_PAGE + 1);
     return null;
+  }
+
+
+  // ---------- 게임판 ----------
+  // 카드·더보기·랜덤 담기·직접 입력으로 가게를 담고, 게임으로 하나를 고른다. 이 기기에만 저장한다.
+  const trayBtn = $("#tray");
+  const inTray = (p) => tray.some((q) => (p.id && q.id === p.id) || q.place_name === p.place_name);
+  function saveTray() { try { localStorage.setItem(TRAY_KEY, JSON.stringify(tray)); } catch {} }
+  function slim(p) {
+    return { id: p.id, place_name: p.place_name, category_name: p.category_name || (p.cat ? `음식점 > ${p.cat}` : ""), x: p.x, y: p.y,
+      distance: p.distance, place_url: p.place_url, road_address_name: p.road_address_name || p.address_name || "", phone: p.phone, typed: p.typed };
+  }
+  function addTray(p) {
+    if (inTray(p)) return true;
+    if (tray.length >= TRAY_MAX) { bubble(`게임판에는 ${TRAY_MAX}곳까지 담을 수 있어요. 게임판을 열어 몇 곳을 빼주세요.`); return false; }
+    tray.push(slim(p));
+    saveTray(); renderTray(true);
+    return true;
+  }
+  function markAdded(btn, text) { btn.textContent = text; btn.classList.add("on"); }
+  function renderTray(bump) {
+    if (!trayBtn) return;
+    trayBtn.hidden = !tray.length;
+    if (!tray.length) return;
+    trayBtn.innerHTML = `<span class="tray-faces" aria-hidden="true">${tray.slice(0, 3).map((q) => `<span>${emojiOf(q)}</span>`).join("")}</span>
+      <span>${tray.length}곳</span><span class="tray-go">${tray.length >= 2 ? "🎮 게임 ›" : "1곳 더"}</span>`;
+    trayBtn.setAttribute("aria-label", `게임판 열기 (${tray.length}곳 담김)`);
+    if (bump) { trayBtn.classList.remove("bump"); void trayBtn.offsetWidth; trayBtn.classList.add("bump"); }
+  }
+  trayBtn && trayBtn.addEventListener("click", openSheet);
+
+  let lastGame = "race";
+  try { if (["race", "wheel", "ladder", "bomb"].includes(localStorage.getItem(GAME_KEY))) lastGame = localStorage.getItem(GAME_KEY); } catch {}
+  const GAME_LIST = [["race", "🏁", "달리기"], ["wheel", "🎡", "돌림판"], ["ladder", "🪜", "사다리"], ["bomb", "💣", "폭탄"]];
+
+  function openSheet() {
+    closeSheet();
+    const back = document.createElement("div");
+    back.className = "sheet-back";
+    back.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-h">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head"><h2 id="sheet-h">🎮 게임판</h2><small></small><button type="button" class="sheet-x" aria-label="닫기">✕</button></div>
+      <ul class="sheet-items"></ul>
+      <form class="sheet-add"><input name="q" aria-label="가게 이름" placeholder="가게 이름 직접 넣기" maxlength="20" autocomplete="off" enterkeyhint="done" /><button type="submit">넣기</button></form>
+      <p class="sheet-fine">직접 넣은 가게는 근처에서 같은 이름을 찾아 주소와 길찾기를 붙여요.</p>
+      <p class="sheet-label">게임 고르기</p>
+      <div class="sheet-games" role="radiogroup" aria-label="게임">${GAME_LIST.map(([k, e, n]) => `<button type="button" role="radio" data-g="${k}"><b>${e}</b>${n}</button>`).join("")}</div>
+      <button type="button" class="sheet-start"></button>
+      <button type="button" class="sheet-clear">게임판 비우기</button>
+    </div>`;
+    document.body.appendChild(back);
+    document.documentElement.style.overflow = "hidden";
+    const sh = back.querySelector(".sheet");
+    const paint = () => {
+      sh.querySelector(".sheet-head small").textContent = `${tray.length} / ${TRAY_MAX}곳`;
+      sh.querySelector(".sheet-items").innerHTML = tray.length ? tray.map((q, i) => `<li><span class="sheet-em" aria-hidden="true">${emojiOf(q)}</span>
+        <div class="sheet-info"><b>${esc(q.place_name)}</b><span>${esc(q.typed && !q.x ? "직접 넣음 · 근처에서 못 찾았어요" : metaLine(q) || q.road_address_name || "")}</span></div>
+        <button type="button" data-del="${i}" aria-label="${esc(q.place_name)} 빼기">✕</button></li>`).join("")
+        : `<li class="sheet-empty">추천 카드의 "🎮 게임판에 담기"나 아래에 가게 이름을 넣어 담아보세요.</li>`;
+      sh.querySelectorAll("[data-g]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.g === lastGame)));
+      const st = sh.querySelector(".sheet-start"), g = GAME_LIST.find(([k]) => k === lastGame);
+      st.disabled = tray.length < 2;
+      st.textContent = tray.length < 2 ? "2곳 이상 담으면 시작할 수 있어요" : `${g[1]} ${g[2]} 시작 (${tray.length}곳)`;
+      sh.querySelector(".sheet-add button").disabled = tray.length >= TRAY_MAX;
+      renderTray();
+    };
+    sh.querySelector(".sheet-items").onclick = (e) => {
+      const b = e.target.closest("[data-del]"); if (!b) return;
+      tray.splice(Number(b.dataset.del), 1); saveTray(); paint();
+    };
+    sh.querySelector(".sheet-games").onclick = (e) => {
+      const b = e.target.closest("[data-g]"); if (!b) return;
+      lastGame = b.dataset.g; try { localStorage.setItem(GAME_KEY, lastGame); } catch {}
+      paint();
+    };
+    const addForm = sh.querySelector(".sheet-add");
+    addForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = addForm.q.value.trim();
+      if (!name || tray.length >= TRAY_MAX) return;
+      const btn = addForm.querySelector("button");
+      btn.disabled = true; btn.textContent = "찾는 중…";
+      const found = await findByName(name);
+      btn.textContent = "넣기";
+      addTray(found || { id: `typed-${name}`, place_name: name, typed: true });
+      addForm.q.value = "";
+      paint();
+    };
+    sh.querySelector(".sheet-start").onclick = () => { closeSheet(); startGame(); };
+    sh.querySelector(".sheet-clear").onclick = () => { tray = []; saveTray(); renderTray(); closeSheet(); };
+    sh.querySelector(".sheet-x").onclick = closeSheet;
+    back.addEventListener("click", (e) => { if (e.target === back) closeSheet(); });
+    back.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+    paint();
+    sh.querySelector(".sheet-x").focus();
+  }
+  function closeSheet() {
+    const b = document.querySelector(".sheet-back");
+    if (b) { b.remove(); document.documentElement.style.overflow = ""; }
+  }
+
+  // 직접 넣은 이름으로 근처(5km) 가게를 찾는다. 이름이 들어간 가게를 먼저, 없으면 못 찾은 것으로 둔다
+  async function findByName(name) {
+    try {
+      const here = await getLocation();
+      const { places } = await searchPlaces(name, here, 1, 5000);
+      const key = name.replace(/\s/g, "");
+      const p = places.find((q) => q.place_name.replace(/\s/g, "").includes(key)) || null;
+      return p && !p.demo ? { ...p, typed: true } : null;
+    } catch { return null; }
+  }
+
+  // 게임 파일은 처음 열 때만 불러온다
+  let gameLoad = null;
+  function loadGame() {
+    if (window.OdGame) return Promise.resolve();
+    return gameLoad || (gameLoad = new Promise((ok, fail) => {
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/game.css"; document.head.appendChild(l);
+      const s = document.createElement("script"); s.src = "/game.js"; s.onload = ok; s.onerror = () => { gameLoad = null; fail(); }; document.head.appendChild(s);
+    }));
+  }
+  async function startGame() {
+    if (tray.length < 2) return openSheet();
+    trayBtn.disabled = true;
+    try { await loadGame(); } catch { trayBtn.disabled = false; bubble("게임을 불러오지 못했어요. 잠시 후 다시 눌러주세요."); return; }
+    trayBtn.disabled = false;
+    const list = tray.slice();
+    window.OdGame.open({
+      places: list.map((q) => ({ name: q.place_name, e: emojiOf(q) })),
+      game: lastGame,
+      onPick: (i, gameName) => renderGameResult(list[i], gameName, list),
+    });
+  }
+
+  function renderGameResult(p, gameName, list) {
+    app.classList.add("talking");
+    bubble(`🎮 ${gameName} 게임 결과`, "me");
+    const el = document.createElement("article");
+    el.className = "pick pick-trophy";
+    const meta = metaLine(p);
+    el.innerHTML = `
+      <p class="food">🏆 ${esc(gameName)} 게임으로 뽑았어요 · ${list.length}곳 중 1등</p>
+      <h2>${emojiOf(p)} ${esc(p.place_name)}</h2>
+      ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
+      <p class="meta">${esc(p.road_address_name || (p.x ? "" : "직접 넣은 가게예요. 길찾기는 카카오맵 검색으로 열려요."))}</p>
+      <div class="actions">
+        <a class="primary" href="${esc(routeUrl(p))}" target="_blank" rel="noopener">길찾기</a>
+        <a href="${esc(p.place_url || destUrl(p))}" target="_blank" rel="noopener">메뉴 보기</a>
+        <button type="button" data-share>공유하기</button>
+        <button type="button" data-replay>🔁 한 판 더</button>
+        ${list.filter((q) => q.x).length >= 2 ? `<button type="button" class="wide" data-poll>👥 이 후보로 친구랑 투표하기 (${list.length}곳)</button>` : ""}
+      </div>`;
+    const shareBtn = el.querySelector("[data-share]");
+    shareBtn.onclick = () => sharePick(shareBtn, `${gameName} 게임 1등`, p);
+    el.querySelector("[data-replay]").onclick = startGame;
+    const pollBtn = el.querySelector("[data-poll]");
+    if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, "메뉴", list);
+    chat.appendChild(el);
+    el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
 
   // 처음 화면으로: 진행 중인 추천은 버리고 대화를 지운다
@@ -763,6 +948,7 @@
   }
 
   renderModes();
+  renderTray();
   startBeta();
   renderChips();
   initLocation();

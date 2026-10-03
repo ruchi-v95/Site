@@ -3,8 +3,8 @@ const TTL = 24 * 3600;
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = env("KV_REST_API_URL", "REDIS_REST_URL");
+  const token = env("KV_REST_API_TOKEN", "REDIS_REST_TOKEN");
   if (!url || !token) return res.status(503).json({ error: "storage not set" });
   const redis = (cmds) => fetch(`${url}/pipeline`, {
     method: "POST",
@@ -55,4 +55,13 @@ export default async function handler(req, res) {
 function clean(p) {
   const s = (v, n) => String(v ?? "").slice(0, n);
   return { name: s(p.name, 40), cat: s(p.cat, 20), addr: s(p.addr, 60), x: s(p.x, 20), y: s(p.y, 20), url: /^https:\/\/place\.map\.kakao\.com\//.test(p.url || "") ? s(p.url, 80) : "" };
+}
+
+// Vercel 연동 시 붙는 접두사(STORAGE_ 등)와 상관없이 찾기
+function env(...suffixes) {
+  for (const sfx of suffixes) {
+    if (process.env[sfx]) return process.env[sfx];
+    const key = Object.keys(process.env).find((k) => k.endsWith(sfx) && !k.includes("READ_ONLY"));
+    if (key) return process.env[key];
+  }
 }

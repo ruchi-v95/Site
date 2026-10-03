@@ -158,7 +158,7 @@
     return `https://map.kakao.com/link/from/${from}/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
-  function renderPick(label, p, query, pool = []) {
+  function renderPick(label, p, query, others = []) {
     const el = document.createElement("article");
     el.className = "pick";
     const cat = lastCategory(p);
@@ -178,6 +178,7 @@
         <button type="button" data-share>공유하기</button>
         <button type="button" data-again>다시 뽑기</button>
         <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
+        ${others.length && !p.demo ? `<button type="button" class="wide" data-poll>👥 친구랑 투표로 고르기 (${others.length + 1}곳)</button>` : ""}
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
@@ -186,8 +187,42 @@
     moreBtn.onclick = () => showMore(el, moreBtn, moreWord, p);
     const shareBtn = el.querySelector("[data-share]");
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
+    const pollBtn = el.querySelector("[data-poll]");
+    if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, label, [p, ...others]);
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  // 같이 고르기: 후보를 저장하고 투표 링크를 단톡방 등으로 보낸다
+  async function startPoll(btn, label, places) {
+    btn.disabled = true;
+    btn.textContent = "투표 만드는 중…";
+    try {
+      const r = await fetch("/api/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: label,
+          places: places.map((q) => ({ name: q.place_name, cat: lastCategory(q), addr: q.road_address_name || q.address_name, x: q.x, y: q.y, url: q.place_url })),
+        }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      const { id } = await r.json();
+      const link = `${location.origin}/vote.html?id=${id}`;
+      const text = `오늘 ${label} 어디서 먹을까? 투표해줘 🗳️\n${places.map((q) => "· " + q.place_name).join("\n")}\n${link}`;
+      btn.disabled = false;
+      btn.textContent = "투표 결과 보기";
+      btn.onclick = () => window.open(link, "_blank", "noopener");
+      try {
+        if (navigator.share) await navigator.share({ title: "오땡뭐! 같이 고르기", text });
+        else { await navigator.clipboard.writeText(text); bubble("투표 링크를 복사했어요. 단톡방에 붙여넣어 보내세요."); }
+      } catch (e) {
+        if (!e || e.name !== "AbortError") bubble(`이 링크를 보내주세요: ${link}`);
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "투표를 만들지 못했어요 · 다시";
+    }
   }
 
   // 이 카드에서 "빼고"를 누를 때 뺄 말: 메뉴로 찾았으면 그 메뉴, 종류로 찾았으면 큰 분류(한식·중식…)
@@ -535,7 +570,7 @@
       await spin(typing, shuffle([...(ctx.pool || []), p.place_name]), stale);
       if (stale()) return typing.remove();
       typing.remove();
-      renderPick(label, p, query);
+      renderPick(label, p, query, (ctx.fresh || []).filter((q) => q.id !== p.id).slice(0, 2));
       return;
     }
     typing.remove();
@@ -568,6 +603,7 @@
       if (fresh.length) {
         const near = fresh.slice(0, 5);
         ctx.pool = fresh.slice(0, 8).map((q) => q.place_name);
+        ctx.fresh = fresh;
         const p = near[Math.floor(Math.random() * near.length)];
         ctx.shown.add(p.id);
         ctx.pages.set(query, page);

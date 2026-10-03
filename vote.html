@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>같이 고르기 | 오땡뭐!</title>
+  <meta name="description" content="어디서 먹을지 투표로 정해요." />
+  <meta name="robots" content="noindex" />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="오늘 어디서 먹을까? 투표해줘 🗳️" />
+  <meta property="og:description" content="오땡뭐! 같이 고르기" />
+  <meta property="og:image" content="https://odaengmwo.com/og.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7637538532720632" crossorigin="anonymous"></script>
+</head>
+<body>
+  <main class="doc vote">
+    <p class="mark"><a href="/">오땡뭐!</a></p>
+    <h1 id="v-title">같이 고르기</h1>
+    <p id="v-sub" class="v-sub">불러오는 중…</p>
+    <ol id="v-list" class="v-list"></ol>
+    <p class="v-foot"><button id="v-share" type="button" hidden>이 투표 공유하기</button></p>
+    <p class="doc-back"><a href="/">← 나도 메뉴 고르기</a></p>
+  </main>
+  <script>
+    (() => {
+      const id = new URLSearchParams(location.search).get("id") || "";
+      const KEY = "wmm.voted." + id;
+      const $ = (s) => document.querySelector(s);
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const getVoted = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
+      const setVoted = (i) => { try { localStorage.setItem(KEY, String(i)); } catch {} };
+      let busy = false;
+
+      function render(d) {
+        const voted = getVoted();
+        const total = d.votes.reduce((a, b) => a + b, 0);
+        const top = Math.max(...d.votes);
+        $("#v-title").textContent = d.title ? `오늘 ${d.title}, 어디서 먹을까?` : "어디서 먹을까?";
+        $("#v-sub").textContent = voted == null ? "한 곳을 골라 투표해 주세요." : `투표했어요. 지금까지 ${total}표`;
+        $("#v-list").innerHTML = d.places.map((p, i) => {
+          const pct = total ? Math.round((d.votes[i] / total) * 100) : 0;
+          const lead = total && d.votes[i] === top;
+          const route = `https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.y},${p.x}`;
+          return `<li class="v-item${lead ? " lead" : ""}${String(i) === voted ? " mine" : ""}">
+            <div class="v-bar" style="width:${voted == null ? 0 : pct}%"></div>
+            <div class="v-row">
+              <div class="v-info"><b>${esc(p.name)}</b><span>${esc([p.cat, p.addr].filter(Boolean).join(" · "))}</span></div>
+              ${voted == null ? `<button type="button" data-vote="${i}">투표</button>` : `<span class="v-count">${d.votes[i]}표${lead ? " 👑" : ""}</span>`}
+            </div>
+            <div class="v-links"><a href="${esc(p.url || route)}" target="_blank" rel="noopener">메뉴 보기</a><a href="${esc(route)}" target="_blank" rel="noopener">길찾기</a></div>
+          </li>`;
+        }).join("");
+        document.querySelectorAll("[data-vote]").forEach((b) => (b.onclick = () => vote(Number(b.dataset.vote))));
+        $("#v-share").hidden = false;
+      }
+
+      async function load(opts) {
+        const r = await fetch(`/api/poll?id=${encodeURIComponent(id)}`, opts);
+        if (r.status === 404) throw new Error("gone");
+        if (!r.ok) throw new Error("fail");
+        return r.json();
+      }
+
+      async function refresh() {
+        if (busy || document.hidden) return;
+        try { render(await load()); }
+        catch (e) { $("#v-sub").textContent = e.message === "gone" ? "투표가 끝났거나 없는 투표예요. (24시간 뒤 사라져요)" : "불러오지 못했어요. 잠시 후 다시 열어주세요."; }
+      }
+
+      async function vote(i) {
+        if (busy || getVoted() != null) return;
+        busy = true;
+        try {
+          const r = await fetch(`/api/poll?id=${encodeURIComponent(id)}&vote=${i}`, { method: "POST" });
+          if (!r.ok) throw new Error();
+          setVoted(i);
+          render(await r.json());
+        } catch { $("#v-sub").textContent = "투표하지 못했어요. 다시 눌러주세요."; }
+        busy = false;
+      }
+
+      $("#v-share").onclick = async () => {
+        const text = `${$("#v-title").textContent} 투표해줘 🗳️\n${location.href}`;
+        try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); $("#v-share").textContent = "링크를 복사했어요"; } } catch {}
+      };
+
+      refresh();
+      setInterval(refresh, 5000);
+    })();
+  </script>
+</body>
+</html>

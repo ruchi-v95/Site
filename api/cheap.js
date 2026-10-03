@@ -22,9 +22,9 @@ export default async function handler(req, res) {
       const rows = load()[region];
       if (!rows) return res.status(404).json({ error: "no region" });
       const places = [];
-      // 카카오 호출이 몰리지 않게 8개씩
-      for (let i = 0; i < rows.length; i += 8) {
-        const got = await Promise.all(rows.slice(i, i + 8).map(async ([name, phone, addr, cat, menus], j) => {
+      // 카카오 호출이 몰리지 않게 12개씩
+      for (let i = 0; i < rows.length; i += 12) {
+        const got = await Promise.all(rows.slice(i, i + 12).map(async ([name, phone, addr, cat, menus], j) => {
           // "OO로 12 210호"처럼 뒤에 붙은 호수 때문에 못 찾으면 도로명+번지까지만 다시 찾는다
           const short = (addr.match(/^.*?\d+(-\d+)?(?=\s|,|$)/) || [addr])[0];
           const d = (await kakao("search/address.json", { query: addr, size: "1" }))?.documents?.[0]

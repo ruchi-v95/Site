@@ -14,7 +14,8 @@
   ],
   "functions": {
     "api/cheap.js": {
-      "includeFiles": "data/cheap.json"
+      "includeFiles": "data/cheap.json",
+      "maxDuration": 60
     }
   }
 }

@@ -3,7 +3,9 @@ const KMA_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUl
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  const key = process.env.KMA_SERVICE_KEY;
+  // 공공데이터포털의 "Encoding" 키를 넣어도 되게 한 번 풀어준다 (URLSearchParams가 다시 인코딩함)
+  let key = process.env.KMA_SERVICE_KEY;
+  if (key && key.includes("%")) try { key = decodeURIComponent(key); } catch {}
   if (!key) return res.status(503).json({ error: "KMA_SERVICE_KEY not set" });
   const x = Number(req.query.x), y = Number(req.query.y);
   if (!(x > 124 && x < 132) || !(y > 33 && y < 39)) return res.status(400).json({ error: "bad query" });

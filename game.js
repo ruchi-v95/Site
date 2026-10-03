@@ -34,7 +34,7 @@
 
   const MAX = 8;
   const sync = () => { places = items.map((p) => ({ name: p.place_name, e: emojiFn(p) })); };
-  const menuItem = (name, typed) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: !!typed });
+  const menuItem = (name) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: true });
   const has = (name) => items.some((p) => p.place_name === name);
 
   // o: { items, ideas, emojiOf, game, onChange(items), onGame(game), onPick(item, gameName, items) }
@@ -42,11 +42,6 @@
     close();
     opts = o; emojiFn = o.emojiOf || emojiFn; game = GAMES[o.game] ? o.game : "race"; ladder = null;
     items = (o.items || []).slice(0, MAX);
-    // 아무것도 안 담았으면 메뉴 4개로 바로 할 수 있게 채워둔다
-    if (items.length < 2 && o.ideas) {
-      for (const m of [...o.ideas].sort(() => Math.random() - .5)) { if (items.length >= 4) break; if (!has(m)) items.push(menuItem(m)); }
-      changed();
-    }
     sync();
     root = document.createElement("div");
     root.className = "od-arcade";
@@ -83,16 +78,15 @@
     $(".ga-add").onsubmit = (e) => {
       e.preventDefault(); if (busy) return;
       const f = e.currentTarget, name = f.q.value.trim().slice(0, 20);
-      if (name && !has(name) && items.length < MAX) { items.push(menuItem(name, true)); edited(); }
+      if (name && !has(name) && items.length < MAX) { items.push(menuItem(name)); edited(); }
       f.q.value = "";
     };
     $(".ga-ideas").onclick = (e) => {
       const b = e.target.closest("button"); if (!b || busy) return;
       if (b.hasAttribute("data-rand")) {
+        // 누른 사람이 원할 때만: 없는 메뉴를 2개씩 더 넣는다
         const pool = (opts.ideas || []).filter((m) => !has(m)).sort(() => Math.random() - .5);
-        items = items.filter((p) => !p.menu || p.typed); // 직접 쓴 메뉴와 담은 가게는 남긴다
-        const want = Math.min(MAX, Math.max(4, items.length + 2));
-        for (const m of pool) { if (items.length >= want) break; items.push(menuItem(m)); }
+        for (const m of pool.slice(0, Math.min(2, MAX - items.length))) items.push(menuItem(m));
       } else {
         const m = b.dataset.menu, i = items.findIndex((p) => p.place_name === m);
         if (i >= 0) items.splice(i, 1); else if (items.length < MAX) items.push(menuItem(m));
@@ -109,8 +103,8 @@
   function renderCands() {
     $(".ga-cands-head small").textContent = `${items.length} / ${MAX}개`;
     $(".ga-chips").innerHTML = items.length ? items.map((p, i) => `<span class="ga-chip" style="--dot:${color(i)}"><span aria-hidden="true">${places[i].e}</span>${esc(p.place_name)}<button type="button" data-del="${i}" aria-label="${esc(p.place_name)} 빼기">✕</button></span>`).join("")
-      : `<span class="ga-empty">아래에서 메뉴를 눌러 넣어보세요.</span>`;
-    $(".ga-ideas").innerHTML = `<button type="button" data-rand>🎲 메뉴 바꾸기</button>` + (opts.ideas || []).map((m) =>
+      : `<span class="ga-empty">아래에 메뉴를 쓰거나 메뉴 버튼을 눌러 2개 이상 넣어주세요.</span>`;
+    $(".ga-ideas").innerHTML = `<button type="button" data-rand>🎲 아무 메뉴 2개</button>` + (opts.ideas || []).map((m) =>
       `<button type="button" data-menu="${esc(m)}" class="${has(m) ? "on" : ""}">${emojiFn({ place_name: m })} ${esc(m)}</button>`).join("");
     $(".ga-add button").disabled = items.length >= MAX;
   }

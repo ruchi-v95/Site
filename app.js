@@ -71,7 +71,11 @@
   // 로컬에서 서버 없이 열 때만 예시 가게를 쓴다. 실제 사이트에서는 실패를 그대로 알린다
   const DEMO_OK = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
   let tray = [];
-  try { tray = (JSON.parse(localStorage.getItem(TRAY_KEY)) || []).filter((q) => q && q.place_name).slice(0, TRAY_MAX); } catch {}
+  try {
+    tray = (JSON.parse(localStorage.getItem(TRAY_KEY)) || []).filter((q) => q && q.place_name).slice(0, TRAY_MAX);
+    // 예전에 게임 화면이 저절로 넣었던 메뉴(typed 없음)는 한 번 비운다
+    if (!localStorage.getItem("wmm.tray.v2")) { tray = tray.filter((q) => !q.menu || q.typed); localStorage.setItem(TRAY_KEY, JSON.stringify(tray)); localStorage.setItem("wmm.tray.v2", "1"); }
+  } catch {}
   let travel = "walk";
   try { if (MODES[localStorage.getItem(MODE_KEY)]) travel = localStorage.getItem(MODE_KEY); } catch {}
   const km = (m) => `${m / 1000}km`;

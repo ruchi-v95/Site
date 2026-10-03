@@ -15,6 +15,13 @@
     가볍게: ["샐러드", "샌드위치", "김밥", "포케", "쌀국수", "우동"],
   };
   const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게", "아무거나"];
+  // 날씨 맞춤: 지금 날씨에 어울리는 메뉴를 상황 버튼 맨 앞에 보여준다 (기상청 초단기실황)
+  const WEATHER = {
+    비: { chip: "☔ 비 오는 날", line: "비가 오네요. 뜨끈한 국물이나 전 어때요?", foods: ["칼국수", "짬뽕", "파전", "부대찌개", "감자탕", "국밥", "수제비"] },
+    눈: { chip: "❄️ 눈 오는 날", line: "눈이 와요. 따끈한 걸로 골라볼까요?", foods: ["국밥", "김치찌개", "감자탕", "칼국수", "순두부찌개", "마라탕"] },
+    추위: { chip: "🥶 추운 날", line: "날이 차요. 뜨끈한 거 어때요?", foods: ["국밥", "김치찌개", "감자탕", "순두부찌개", "칼국수", "마라탕", "샤브샤브"] },
+    더위: { chip: "🥵 더운 날", line: "덥네요. 시원한 거 어때요?", foods: ["냉면", "막국수", "콩국수", "물회", "초밥", "샐러드", "밀면"] },
+  };
   const RECENT_KEY = "wmm.recent";
   const RECENT_MAX = 5;
   const MAX_PAGE = 3;
@@ -31,6 +38,8 @@
     // 카카오는 메뉴 정보를 주지 않아서, 분식집처럼 대부분 그 메뉴를 파는 분류를 함께 넣는다
     라면: ["라면", "라멘", "분식"], 라멘: ["라멘", "라면"], 김밥: ["김밥", "분식"], 떡볶이: ["떡볶이", "분식"], 고기: ["고기", "육류", "삼겹", "갈비"],
     피자: ["피자"], 버거: ["버거"], 햄버거: ["햄버거", "버거"], 초밥: ["초밥", "스시", "참치", "오마카세"],
+    파전: ["파전", "전집", "빈대떡", "부침"], 수제비: ["수제비", "칼국수"], 샤브샤브: ["샤브"],
+    막국수: ["막국수", "메밀"], 콩국수: ["콩국수"], 물회: ["물회", "횟집"], 밀면: ["밀면", "냉면"],
     // 상황 버튼 메뉴: 가게 이름이나 카카오 분류에 흔히 쓰이는 말
     국밥: ["국밥", "해장국", "설렁탕", "곰탕", "순대국"], 김치찌개: ["김치찌개", "찌개", "김치찜"],
     돈까스: ["돈까스", "돈가스", "카츠"], 제육볶음: ["제육", "백반", "기사식당"], 칼국수: ["칼국수", "국수"],
@@ -47,6 +56,7 @@
 
   let loc = null;      // {x: 경도, y: 위도}
   let current = null;  // {queries, mode: "category"|"food", shown:Set, used:Set, pages:Map}
+  let weather = null; // WEATHER의 키 (비·눈·추위·더위) 또는 null
   let excluded = new Set(); // "한식 빼고"처럼 이번에 뺀 종류·메뉴 (처음으로 가면 초기화)
   let run = 0;         // 마지막 추천 요청 번호. 빠르게 여러 번 누르면 마지막 것만 보여준다
   // 로컬에서 서버 없이 열 때만 예시 가게를 쓴다. 실제 사이트에서는 실패를 그대로 알린다
@@ -77,8 +87,28 @@
   function renderChips() {
     const slot = timeSlot();
     const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
+    const w = weather && WEATHER[weather];
     fillChips($("#chips-cat"), Object.keys(CATEGORIES), (c) => ask(c, { category: c }));
-    fillChips($("#chips-sit"), situations, (c) => ask(c, { situation: c }));
+    fillChips($("#chips-sit"), w ? [w.chip, ...situations] : situations, (c) =>
+      w && c === w.chip ? ask(c, { foods: w.foods }) : ask(c, { situation: c }));
+    if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
+  }
+
+  // 위치를 알면 그 동네 날씨를 한 번 가져온다. 키가 없거나 실패하면 조용히 넘어간다.
+  async function loadWeather() {
+    if (!loc || usingFallback) return;
+    try {
+      const r = await fetch(`/api/weather?x=${loc.x.toFixed(2)}&y=${loc.y.toFixed(2)}`);
+      if (!r.ok) return;
+      const { temp, pty } = await r.json();
+      const next = [1, 2, 4, 5].includes(pty) ? "비" : [3, 6, 7].includes(pty) ? "눈"
+        : temp <= 5 ? "추위" : temp >= 27 ? "더위" : null;
+      if (next === weather) return;
+      weather = next;
+      renderChips();
+      const tag = $(".tagline");
+      if (tag && next) tag.textContent = `${WEATHER[next].line} (지금 ${Math.round(temp)}°)`;
+    } catch {}
   }
 
   function fillChips(el, labels, onPick) {
@@ -323,6 +353,7 @@
     locbar.hidden = true;
     if (label) showNotice(`${label} 근처에서 추천하고 있어요.`);
     else notice.hidden = true;
+    loadWeather();
   }
 
   // 아래 안내 줄: 지금 어느 위치 기준인지 + 위치 바꾸기
@@ -455,13 +486,14 @@
   function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
   // ---------- 추천 ----------
-  async function ask(text, { category, situation } = {}) {
+  async function ask(text, { category, situation, foods } = {}) {
     text = text.trim();
     if (!text) return;
     app.classList.add("talking");
     bubble(text, "me");
     let plan;
-    if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
+    if (foods) plan = { mode: "food", queries: foods };
+    else if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
     else if (situation === "아무거나") plan = { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
     else if (situation) plan = { mode: "food", queries: SITUATIONS[situation] };
     else plan = interpret(text);

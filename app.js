@@ -15,6 +15,7 @@
     가볍게: ["샐러드", "샌드위치", "김밥", "포케", "쌀국수", "우동"],
   };
   const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게", "아무거나"];
+  const CHEAP_CHIP = "💰 착한가격";
   // 날씨 맞춤: 지금 날씨에 어울리는 메뉴를 상황 버튼 맨 앞에 보여준다 (기상청 초단기실황)
   const WEATHER = {
     비: { chip: "☔ 비 오는 날", line: "비가 오네요. 뜨끈한 국물이나 전 어때요?", foods: ["칼국수", "짬뽕", "파전", "부대찌개", "감자탕", "국밥", "수제비"] },
@@ -89,9 +90,11 @@
     const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
     const w = weather && WEATHER[weather];
     fillChips($("#chips-cat"), Object.keys(CATEGORIES), (c) => ask(c, { category: c }));
-    fillChips($("#chips-sit"), w ? [w.chip, ...situations] : situations, (c) =>
-      w && c === w.chip ? ask(c, { foods: w.foods }) : ask(c, { situation: c }));
+    const sit = [...(w ? [w.chip] : []), situations[0], CHEAP_CHIP, ...situations.slice(1)];
+    fillChips($("#chips-sit"), sit, (c) =>
+      w && c === w.chip ? ask(c, { foods: w.foods }) : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
     if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
+    [...$("#chips-sit").children].find((b) => b.textContent === CHEAP_CHIP)?.classList.add("chip-cheap");
   }
 
   // 위치를 알면 그 동네 날씨를 한 번 가져온다. 키가 없거나 실패하면 조용히 넘어간다.
@@ -164,10 +167,11 @@
     const cat = lastCategory(p);
     const meta = metaLine(p, label);
     const route = routeUrl(p);
-    const moreWord = cat || query;
+    const moreWord = p.cheap ? "착한가격" : cat || query;
     el.innerHTML = `
-      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}</p>
+      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}${p.cheap ? '<span class="cheap-tag">착한가격업소</span>' : ""}</p>
       <h2>${esc(p.place_name)}</h2>
+      ${p.menus && p.menus.length ? `<p class="menus">${p.menus.map(([m, won]) => `${esc(m)} <b>${Number(won).toLocaleString()}원</b>`).join(" · ")}</p>` : ""}
       ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
       <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
       ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
@@ -274,6 +278,16 @@
   // 같은 종류 가게를 거리순으로 5곳씩 보여준다. 누르면 5곳 더.
   async function showMore(card, btn, word, first) {
     const st = card._more || (card._more = { page: 0, end: false, list: [], seen: new Set([first.id]), idx: 0, radius: MODES[travel].radius });
+    if (first.cheap && !st.cheapLoaded) {
+      // 착한가격업소는 이미 받아 둔 동네 목록에서 가까운 순으로
+      st.cheapLoaded = true;
+      st.end = true;
+      st.page = MAX_PAGE;
+      try {
+        const all = await cheapPlaces(await getLocation());
+        st.list = all.filter((q) => q.id !== first.id && Number(q.distance) <= st.radius).sort((a, b) => a.distance - b.distance);
+      } catch { st.list = []; }
+    }
     const ul = card.querySelector(".more");
     btn.disabled = true;
     btn.textContent = "찾는 중…";
@@ -293,7 +307,7 @@
       li.innerHTML = `
         <div class="more-info">
           <a class="more-name" href="${esc(q.place_url || destUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
-          ${meta ? `<span class="more-meta">${esc(meta)}</span>` : ""}
+          ${meta ? `<span class="more-meta">${esc(meta)}${q.menus && q.menus[0] ? ` · ${esc(q.menus[0][0])} <b>${Number(q.menus[0][1]).toLocaleString()}원</b>` : ""}</span>` : ""}
         </div>
         <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
       ul.appendChild(li);
@@ -509,6 +523,7 @@
     if (foods.length) return { mode: "food", queries: foods };
     const sit = Object.keys(SITUATIONS).find((k) => text.includes(k));
     if (sit) return { mode: "food", queries: SITUATIONS[sit] };
+    if (/착한\s?가격|가성비|싼\s?곳|저렴|만원/.test(text)) return { mode: "cheap", queries: ["착한가격"] };
     if (/뜨끈|따뜻|해장|비\s?오/.test(text)) return { mode: "food", queries: SITUATIONS.국물 };
     if (/가볍|다이어트/.test(text)) return { mode: "food", queries: SITUATIONS.가볍게 };
     if (/혼자/.test(text)) return { mode: "food", queries: SITUATIONS.혼밥 };
@@ -521,13 +536,14 @@
   function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
   // ---------- 추천 ----------
-  async function ask(text, { category, situation, foods } = {}) {
+  async function ask(text, { category, situation, foods, cheap } = {}) {
     text = text.trim();
     if (!text) return;
     app.classList.add("talking");
     bubble(text, "me");
     let plan;
-    if (foods) plan = { mode: "food", queries: foods };
+    if (cheap) plan = { mode: "cheap", queries: ["착한가격"] };
+    else if (foods) plan = { mode: "food", queries: foods };
     else if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
     else if (situation === "아무거나") plan = { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
     else if (situation) plan = { mode: "food", queries: SITUATIONS[situation] };
@@ -544,6 +560,8 @@
     const stale = () => id !== run; // 그사이 다른 버튼을 눌렀으면 이 요청은 버린다
     const here = await getLocation();
     if (stale()) return typing.remove();
+
+    if (ctx.mode === "cheap") return pickCheap(ctx, here, typing, stale);
 
     const avoid = new Set(recent.get());
     // 뺀 종류는 검색어에서도 제외. 다 빠지면 나머지 종류 전체에서 고른다
@@ -584,6 +602,81 @@
     }
     ctx.empty = true;
     const msg = bubble(`근처 ${km(MODES[travel].radius)} 안에서 더 찾을 곳이 없어요. ${travel === "walk" ? "차로 넓혀서 찾거나 " : ""}다른 버튼을 눌러보세요.`);
+    if (travel === "walk") {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "retry"; b.setAttribute("data-again", "");
+      b.textContent = `차로 ${km(MODES.car.radius)}까지 넓혀서 찾기`;
+      b.onclick = () => setTravel("car");
+      msg.appendChild(b);
+    }
+  }
+
+  // ---------- 가성비 모드 (행정안전부 착한가격업소) ----------
+  const cheapCache = { region: undefined, at: "", places: null };
+
+  async function cheapPlaces(here) {
+    const at = `${here.x.toFixed(3)},${here.y.toFixed(3)}`;
+    if (cheapCache.at !== at) {
+      const r = await fetch(`/api/cheap?x=${here.x}&y=${here.y}`);
+      if (!r.ok) throw new Error("region");
+      const { region } = await r.json();
+      if (region !== cheapCache.region) cheapCache.places = null;
+      Object.assign(cheapCache, { region, at });
+    }
+    if (!cheapCache.region) return [];
+    if (!cheapCache.places) {
+      const r = await fetch(`/api/cheap?region=${encodeURIComponent(cheapCache.region)}`);
+      if (!r.ok) throw new Error("places");
+      cheapCache.places = (await r.json()).places || [];
+    }
+    return cheapCache.places.map((p) => ({
+      ...p,
+      cheap: true,
+      category_name: `음식점 > ${p.cat}`,
+      distance: String(Math.round(distM(here, p))),
+      place_url: `https://map.kakao.com/?q=${encodeURIComponent(p.place_name + " " + (p.road_address_name || ""))}`,
+    }));
+  }
+
+  // 두 좌표 사이 거리(m)
+  function distM(a, b) {
+    const R = 6371000, rad = Math.PI / 180;
+    const dLat = (b.y - a.y) * rad, dLon = (b.x - a.x) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.y * rad) * Math.cos(b.y * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  async function pickCheap(ctx, here, typing, stale) {
+    ctx.failed = false;
+    ctx.empty = false;
+    let all;
+    try { all = await cheapPlaces(here); } catch { all = null; }
+    if (stale()) return typing.remove();
+    const radius = MODES[travel].radius;
+    const near = (all || []).filter((p) => Number(p.distance) <= radius && !isExcluded(p)).sort((a, b) => a.distance - b.distance);
+    const fresh = near.filter((p) => !ctx.shown.has(p.id));
+    if (fresh.length) {
+      const p = fresh.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fresh.length))];
+      ctx.shown.add(p.id);
+      ctx.fresh = fresh;
+      await spin(typing, shuffle(fresh.slice(0, 8).map((q) => q.place_name)), stale);
+      if (stale()) return typing.remove();
+      typing.remove();
+      renderPick(p.cat, p, "착한가격", fresh.filter((q) => q.id !== p.id).slice(0, 2));
+      return;
+    }
+    typing.remove();
+    if (all === null) {
+      const el = bubble("지금 착한가격업소 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "retry"; b.textContent = "다시 시도"; b.setAttribute("data-again", "");
+      b.onclick = () => pick();
+      el.appendChild(b);
+      return;
+    }
+    ctx.empty = true;
+    const what = near.length ? "더 보여드릴 착한가격업소가 없어요" : "착한가격업소가 없어요";
+    const msg = bubble(`근처 ${km(radius)} 안에는 ${what}. 착한가격업소는 지자체가 지정한 곳만 있어서 동네마다 수가 달라요.`);
     if (travel === "walk") {
       const b = document.createElement("button");
       b.type = "button"; b.className = "retry"; b.setAttribute("data-again", "");

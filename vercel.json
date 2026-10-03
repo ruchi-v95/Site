@@ -2,9 +2,19 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "site-six-wheat-70.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "site-six-wheat-70.vercel.app"
+        }
+      ],
       "destination": "https://odaengmwo.com/:path*",
       "permanent": true
     }
-  ]
+  ],
+  "functions": {
+    "api/cheap.js": {
+      "includeFiles": "data/cheap.json"
+    }
+  }
 }

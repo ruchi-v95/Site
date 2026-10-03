@@ -47,6 +47,7 @@
 
   let loc = null;      // {x: 경도, y: 위도}
   let current = null;  // {queries, mode: "category"|"food", shown:Set, used:Set, pages:Map}
+  let excluded = new Set(); // "한식 빼고"처럼 이번에 뺀 종류·메뉴 (처음으로 가면 초기화)
   let run = 0;         // 마지막 추천 요청 번호. 빠르게 여러 번 누르면 마지막 것만 보여준다
   // 로컬에서 서버 없이 열 때만 예시 가게를 쓴다. 실제 사이트에서는 실패를 그대로 알린다
   const DEMO_OK = /^(localhost|127\.0\.0\.1|)$/.test(location.hostname);
@@ -127,7 +128,7 @@
     return `https://map.kakao.com/link/from/${from}/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
-  function renderPick(label, p, query) {
+  function renderPick(label, p, query, pool = []) {
     const el = document.createElement("article");
     el.className = "pick";
     const cat = lastCategory(p);
@@ -145,16 +146,49 @@
         <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
         <button type="button" data-more>${esc(moreWord)} 더보기</button>
         <button type="button" data-share>공유하기</button>
-        <button type="button" class="wide" data-again>다시 뽑기</button>
+        <button type="button" data-again>다시 뽑기</button>
+        <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
+    el.querySelector("[data-skip]").onclick = () => skipAndPick(skipWord(p, query));
     const moreBtn = el.querySelector("[data-more]");
     moreBtn.onclick = () => showMore(el, moreBtn, moreWord, p);
     const shareBtn = el.querySelector("[data-share]");
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  // 이 카드에서 "빼고"를 누를 때 뺄 말: 메뉴로 찾았으면 그 메뉴, 종류로 찾았으면 큰 분류(한식·중식…)
+  function skipWord(p, query) {
+    if (current && current.mode === "food") return query;
+    return (p.category_name || "").split(" > ")[1] || lastCategory(p) || query;
+  }
+
+  function isExcluded(p) {
+    if (!excluded.size) return false;
+    const hay = `${p.place_name || ""} ${p.category_name || ""}`;
+    return [...excluded].some((w) => hay.includes(w));
+  }
+
+  function skipAndPick(word) {
+    excluded.add(word);
+    bubble(`${word} 빼고`, "me");
+    pick();
+  }
+
+  // 결과를 보여주기 전 가게 이름이 슬롯처럼 돌아가는 연출 (움직임 줄이기 설정이면 생략)
+  async function spin(el, names, stale) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || names.length < 2) return;
+    el.classList.add("slot");
+    let delay = 60;
+    for (let i = 0; delay < 260; i++) {
+      if (stale()) return;
+      el.textContent = names[i % names.length];
+      await new Promise((r) => setTimeout(r, delay));
+      delay *= 1.18;
+    }
   }
 
   // 카톡·문자 등 휴대폰 공유 창으로 보내기. 공유 창이 없는 PC에서는 글을 복사한다.
@@ -396,6 +430,13 @@
 
   // ---------- 입력 해석 (무료 규칙) ----------
   function interpret(text) {
+    // "한식 말고 중식", "국밥 빼고"처럼 뺄 말을 먼저 떼어낸다
+    const skip = [...text.matchAll(/(\S+?)\s*(?:은|는|이|가)?\s*(?:말고|빼고|제외)/g)].map((m) => m[1]);
+    if (skip.length) {
+      for (const w of skip) excluded.add(CATEGORIES[w] || w);
+      text = text.replace(/(\S+?)\s*(?:은|는|이|가)?\s*(?:말고|빼고|제외)(?:하고)?/g, " ").trim();
+      if (!text) return { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
+    }
     const cat = Object.keys(CATEGORIES).find((k) => text.includes(k));
     if (cat) return { mode: "category", queries: [CATEGORIES[cat]] };
     const foods = allFoods().filter((f) => text.includes(f));
@@ -438,9 +479,15 @@
     if (stale()) return typing.remove();
 
     const avoid = new Set(recent.get());
-    let order = shuffle(ctx.queries.filter((q) => !ctx.used.has(q)));
+    // 뺀 종류는 검색어에서도 제외. 다 빠지면 나머지 종류 전체에서 고른다
+    let queries = ctx.queries.filter((q) => !excluded.has(q));
+    if (!queries.length) {
+      ctx.mode = "category";
+      ctx.queries = queries = shuffle(Object.values(CATEGORIES).filter((q) => !excluded.has(q)));
+    }
+    let order = shuffle(queries.filter((q) => !ctx.used.has(q)));
     order = [...order.filter((q) => !avoid.has(q)), ...order.filter((q) => avoid.has(q))];
-    if (!order.length) { ctx.used.clear(); order = shuffle(ctx.queries); }
+    if (!order.length) { ctx.used.clear(); order = shuffle(queries); }
     if (ctx.fallback) order = [...order, ...shuffle(ctx.fallback)];
 
     ctx.failed = false;
@@ -453,6 +500,8 @@
       const label = ctx.mode === "category" ? lastCategory(p) || query : query;
       if (ctx.mode === "food") ctx.used.add(query); // 다음엔 다른 메뉴
       recent.add(label);
+      await spin(typing, shuffle([...(ctx.pool || []), p.place_name]), stale);
+      if (stale()) return typing.remove();
       typing.remove();
       renderPick(label, p, query);
       return;
@@ -483,9 +532,10 @@
     while (page <= MAX_PAGE) {
       const { places, end, failed } = await searchPlaces(query, here, page);
       if (failed) { ctx.failed = true; return null; }
-      const fresh = places.filter((p) => !ctx.shown.has(p.id) && (p.demo || matches(p, query)));
+      const fresh = places.filter((p) => !ctx.shown.has(p.id) && !isExcluded(p) && (p.demo || matches(p, query)));
       if (fresh.length) {
         const near = fresh.slice(0, 5);
+        ctx.pool = fresh.slice(0, 8).map((q) => q.place_name);
         const p = near[Math.floor(Math.random() * near.length)];
         ctx.shown.add(p.id);
         ctx.pages.set(query, page);
@@ -502,6 +552,7 @@
   $("#home").addEventListener("click", () => {
     run += 1;
     current = null;
+    excluded = new Set();
     chat.innerHTML = "";
     input.value = "";
     app.classList.remove("talking");

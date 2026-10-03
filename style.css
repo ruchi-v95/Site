@@ -180,6 +180,8 @@ main.talking .locbar { margin-top: 8px; }
 .msg.me { align-self: flex-end; background: var(--bubble-me); color: var(--bubble-me-fg); border-bottom-right-radius: 6px; }
 .msg.bot { align-self: flex-start; background: var(--card); border-bottom-left-radius: 6px; }
 .msg.typing { color: var(--muted); }
+/* 고르는 중 슬롯 연출 */
+.msg.slot { color: var(--fg); font-weight: 700; min-width: 8em; text-align: center; }
 
 .pick {
   align-self: stretch; background: var(--card); border-radius: 18px; padding: 16px;

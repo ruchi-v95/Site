@@ -749,7 +749,7 @@
     }, 2200);
   }
 
-  // 테스트 단계 안내 문구를 장난스럽게 바꿔가며 보여준다
+  // 배너 아래 "일하는 중" 문구를 장난스럽게 바꿔가며 보여준다
   function startBeta() {
     const el = $("#beta-msg");
     if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

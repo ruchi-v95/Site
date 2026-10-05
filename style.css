@@ -233,6 +233,8 @@ main.doc a { color: var(--accent-text); }
 main.doc .mark { margin: 0; font-weight: 800; }
 main.doc .mark a { text-decoration: none; }
 main.doc .doc-back { margin-top: 36px; }
+main.doc .doc-cta { margin-top: 28px; }
+main.doc .doc-cta a { display: inline-block; padding: 12px 18px; border-radius: 999px; background: #c53a16; color: #fff; font-weight: 800; text-decoration: none; }
 
 /* 의견 보내기 */
 .fb { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }

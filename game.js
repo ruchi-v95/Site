@@ -55,7 +55,7 @@
         <button class="ga-btn ga-sound" type="button" data-sound></button>
         <button class="ga-btn" type="button" data-close>✕ 닫기</button></div>
       <section class="ga-cands" aria-label="후보">
-        <div class="ga-cands-head"><b>후보</b><small></small></div>
+        <div class="ga-cands-head"><b>후보</b><small></small>${o.onPoll ? `<button class="ga-btn ga-poll" type="button" data-poll>👥 친구 투표로</button>` : ""}</div>
         <div class="ga-chips"></div>
         <form class="ga-add"><input name="q" maxlength="20" autocomplete="off" enterkeyhint="done" aria-label="메뉴나 가게 이름" placeholder="메뉴나 가게 이름 넣기" /><button class="ga-btn" type="submit">넣기</button></form>
         <div class="ga-ideas" aria-label="메뉴 빨리 넣기"></div>
@@ -96,6 +96,8 @@
       edited();
     };
     $(".ga-go").onclick = start;
+    const pollBtn = $("[data-poll]");
+    if (pollBtn) pollBtn.onclick = () => { if (busy || items.length < 2) return; const cb = opts.onPoll, all = items.slice(); opts.onClose = null; close(); cb(all); };
     root.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     paintSound(); renderCands(); render();
     $("[data-close]").focus();
@@ -109,6 +111,7 @@
     $(".ga-ideas").innerHTML = `<button type="button" data-rand>🎲 아무 메뉴 2개</button>` + (opts.ideas || []).map((m) =>
       `<button type="button" data-menu="${esc(m)}" class="${has(m) ? "on" : ""}">${emojiFn({ place_name: m })} ${esc(m)}</button>`).join("");
     $(".ga-add button").disabled = items.length >= MAX;
+    const pb = $("[data-poll]"); if (pb) pb.disabled = items.length < 2;
   }
   function close() {
     stopAll();

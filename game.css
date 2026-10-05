@@ -119,6 +119,10 @@
 .od-arcade .ga-cands.locked { opacity: .55; pointer-events: none; }
 .od-arcade .ga-cands-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; }
 .od-arcade .ga-cands-head small { font-size: 13px; color: var(--g-muted); font-variant-numeric: tabular-nums; }
+.od-arcade .ga-cands-head small { margin-left: auto; margin-right: 8px; }
+.od-arcade .ga-cands-head { align-items: center; }
+.od-arcade .ga-poll { font-size: 13px; padding: 6px 10px; }
+.od-arcade .ga-poll:disabled { opacity: .45; }
 .od-arcade .ga-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .od-arcade .ga-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 2px 3px 8px; border: 2.5px solid var(--g-ink); border-left: 8px solid var(--dot); border-radius: 999px; background: var(--g-panel); font-size: 15px; }
 .od-arcade .ga-chip button { border: 0; background: none; color: var(--g-muted); font: inherit; font-size: 13px; padding: 2px 6px; cursor: pointer; }

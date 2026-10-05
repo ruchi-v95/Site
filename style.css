@@ -294,3 +294,4 @@ main.doc .v-links a { color: var(--muted); }
 .pick.pick-trophy { border: 2px solid #ffb020; }
 
 @media (prefers-reduced-motion: reduce) { .tray.bump { animation: none; } }
+.pick [data-tray-poll][hidden] { display: none; }

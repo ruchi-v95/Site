@@ -13,10 +13,10 @@ export default async function handler(req, res) {
   }).then((r) => { if (!r.ok) throw new Error(`redis ${r.status}`); return r.json(); });
 
   try {
-    // 만들기: 후보 2~4곳
+    // 만들기: 사용자가 담은 후보 2~8개
     if (req.method === "POST" && !req.query.id) {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const places = (Array.isArray(body.places) ? body.places : []).slice(0, 4).map(clean).filter((p) => p.name);
+      const places = (Array.isArray(body.places) ? body.places : []).slice(0, 8).map(clean).filter((p) => p.name);
       if (places.length < 2) return res.status(400).json({ error: "need 2+ places" });
       const id = Math.random().toString(36).slice(2, 10);
       await redis([

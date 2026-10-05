@@ -197,8 +197,8 @@
         <button type="button" data-share>공유하기</button>
         <button type="button" data-again>다시 뽑기</button>
         <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
-        <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? "✓ 게임 후보에 담았어요" : "🎮 게임 후보에 담기"}</button>
-        ${others.length && !p.demo ? `<button type="button" class="wide" data-poll>👥 친구랑 투표로 고르기 (${others.length + 1}곳)</button>` : ""}
+        <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? TRAY_ON : TRAY_OFF}</button>
+        ${p.demo ? "" : `<button type="button" class="wide" data-tray-poll hidden></button>`}
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
@@ -207,11 +207,10 @@
     moreBtn.onclick = () => showMore(el, moreBtn, moreWord, p);
     const shareBtn = el.querySelector("[data-share]");
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
-    const pollBtn = el.querySelector("[data-poll]");
-    if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, label, [p, ...others]);
     const trayBtn = el.querySelector("[data-tray]");
-    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, "✓ 게임 후보에 담았어요"); };
+    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, TRAY_ON); };
     chat.appendChild(el);
+    paintPollBtns();
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
 
@@ -225,13 +224,14 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: label,
-          places: places.map((q) => ({ name: q.place_name, cat: lastCategory(q), addr: q.road_address_name || q.address_name, x: q.x, y: q.y, url: q.place_url })),
+          places: places.map((q) => ({ name: q.place_name, cat: q.menu ? "메뉴" : lastCategory(q), addr: q.road_address_name || q.address_name, x: q.x, y: q.y, url: q.place_url })),
         }),
       });
       if (!r.ok) throw new Error(String(r.status));
       const { id } = await r.json();
       const link = `${location.origin}/vote.html?id=${id}`;
-      const text = `오늘 ${label} 어디서 먹을까? 투표해줘 🗳️\n${places.map((q) => "· " + q.place_name).join("\n")}\n${link}`;
+      const ask = places.every((q) => q.menu) ? "오늘 뭐 먹을까?" : label ? `오늘 ${label} 어디서 먹을까?` : "오늘 어디서 먹을까?";
+      const text = `${ask} 투표해줘 🗳️\n${places.map((q) => "· " + q.place_name).join("\n")}\n${link}`;
       btn.disabled = false;
       btn.textContent = "투표 결과 보기";
       btn.onclick = () => window.open(link, "_blank", "noopener");
@@ -327,7 +327,7 @@
           <a class="more-name" href="${esc(q.place_url || destUrl(q))}" target="_blank" rel="noopener">${esc(q.place_name)}</a>
           ${meta ? `<span class="more-meta">${esc(meta)}${q.menus && q.menus[0] ? ` · ${esc(q.menus[0][0])} <b>${Number(q.menus[0][1]).toLocaleString()}원</b>` : ""}</span>` : ""}
         </div>
-        <button type="button" class="more-add${inTray(q) ? " on" : ""}" aria-label="${esc(q.place_name)} 게임 후보에 담기">${inTray(q) ? "✓ 담음" : "+ 담기"}</button>
+        <button type="button" class="more-add${inTray(q) ? " on" : ""}" aria-label="${esc(q.place_name)} 게임·투표 후보에 담기">${inTray(q) ? "✓ 담음" : "+ 담기"}</button>
         <a class="more-go" href="${esc(routeUrl(q))}" target="_blank" rel="noopener" aria-label="${esc(q.place_name)} 길찾기">길찾기</a>`;
       const add = li.querySelector(".more-add");
       add.onclick = () => { if (addTray(q)) markAdded(add, "✓ 담음"); };
@@ -734,6 +734,7 @@
   // ---------- 게임으로 정하기 ----------
   // 검색창 위 버튼으로 바로 게임 화면을 연다. 후보는 게임 화면에서 메뉴를 넣거나, 카드·더보기에서 가게를 담는다. 이 기기에만 저장한다.
   const trayBtn = $("#tray");
+  const POLL_MAX = 8, TRAY_ON = "✓ 후보에 담았어요 (게임·투표)", TRAY_OFF = "➕ 게임·투표 후보에 담기";
   const inTray = (p) => tray.some((q) => (p.id && q.id === p.id) || q.place_name === p.place_name);
   function saveTray() { try { localStorage.setItem(TRAY_KEY, JSON.stringify(tray)); } catch {} }
   function slim(p) {
@@ -748,11 +749,30 @@
     return true;
   }
   function markAdded(btn, text) { btn.textContent = text; btn.classList.add("on"); }
+  // 친구랑 투표: 사용자가 직접 담은 후보(가게·메뉴)로만 만든다. 2개 이상 담으면 카드에 버튼이 나타난다.
+  function paintPollBtns() {
+    document.querySelectorAll("[data-tray-poll]").forEach((b) => {
+      if (b.dataset.made) return;
+      b.hidden = false;
+      b.disabled = tray.length < 2;
+      b.textContent = tray.length < 2 ? "👥 후보를 2개 이상 담으면 친구랑 투표할 수 있어요" : `👥 담은 후보 ${Math.min(tray.length, POLL_MAX)}개로 친구랑 투표하기`;
+      b.onclick = () => { b.dataset.made = "1"; startPoll(b, "", tray.slice(0, POLL_MAX)); };
+    });
+  }
+  function pollFrom(list) {
+    app.classList.add("talking");
+    const el = bubble(`담은 후보 ${Math.min(list.length, POLL_MAX)}개로 투표를 만들어요.`);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "retry";
+    el.appendChild(b);
+    startPoll(b, "", list.slice(0, POLL_MAX));
+  }
   function renderTray(bump) {
     if (!trayBtn) return;
     trayBtn.innerHTML = `<span aria-hidden="true">🎮</span> 게임으로 정하기${tray.length ? `<span class="tray-n">${tray.length}</span>` : ""}`;
     trayBtn.setAttribute("aria-label", tray.length ? `게임으로 정하기 (후보 ${tray.length}개 담김)` : "게임으로 정하기");
     if (bump) { trayBtn.classList.remove("bump"); void trayBtn.offsetWidth; trayBtn.classList.add("bump"); }
+    paintPollBtns();
   }
   trayBtn && trayBtn.addEventListener("click", startGame);
 
@@ -783,6 +803,7 @@
       onChange: (list) => { tray = list.map(slim); saveTray(); renderTray(); },
       onGame: (g) => { lastGame = g; try { localStorage.setItem(GAME_KEY, g); } catch {} },
       onPick: (p, gameName, list) => renderGameResult(p, gameName, list),
+      onPoll: (list) => pollFrom(list),
     });
   }
 
@@ -792,7 +813,7 @@
     if (p.menu) return renderMenuResult(p, gameName, list);
     const el = document.createElement("article");
     el.className = "pick pick-trophy";
-    const meta = metaLine(p), shops = list.filter((q) => q.x && !q.menu).slice(0, 4);
+    const meta = metaLine(p), shops = list.slice(0, POLL_MAX);
     el.innerHTML = `
       <p class="food">🏆 ${esc(gameName)} 게임으로 뽑았어요 · ${list.length}개 중 1등</p>
       <h2>${emojiOf(p)} ${esc(p.place_name)}</h2>
@@ -803,13 +824,13 @@
         <a href="${esc(p.place_url || destUrl(p))}" target="_blank" rel="noopener">메뉴 보기</a>
         <button type="button" data-share>공유하기</button>
         <button type="button" data-replay>🔁 한 판 더</button>
-        ${shops.length >= 2 ? `<button type="button" class="wide" data-poll>👥 이 가게들로 친구랑 투표하기 (${shops.length}곳)</button>` : ""}
+        ${shops.length >= 2 ? `<button type="button" class="wide" data-poll>👥 이 후보 ${shops.length}개로 친구랑 투표하기</button>` : ""}
       </div>`;
     const shareBtn = el.querySelector("[data-share]");
     shareBtn.onclick = () => sharePick(shareBtn, `${gameName} 게임 1등`, p);
     el.querySelector("[data-replay]").onclick = startGame;
     const pollBtn = el.querySelector("[data-poll]");
-    if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, "메뉴", shops);
+    if (pollBtn) pollBtn.onclick = () => startPoll(pollBtn, "", shops);
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }

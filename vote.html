@@ -38,19 +38,19 @@
         const voted = getVoted();
         const total = d.votes.reduce((a, b) => a + b, 0);
         const top = Math.max(...d.votes);
-        $("#v-title").textContent = d.title ? `오늘 ${d.title}, 어디서 먹을까?` : "어디서 먹을까?";
+        $("#v-title").textContent = d.places.every((p) => p.cat === "메뉴") ? "오늘 뭐 먹을까?" : d.title ? `오늘 ${d.title}, 어디서 먹을까?` : "오늘 어디서 먹을까?";
         $("#v-sub").textContent = voted == null ? "한 곳을 골라 투표해 주세요." : `투표했어요. 지금까지 ${total}표`;
         $("#v-list").innerHTML = d.places.map((p, i) => {
           const pct = total ? Math.round((d.votes[i] / total) * 100) : 0;
           const lead = total && d.votes[i] === top;
-          const route = `https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.y},${p.x}`;
+          const route = p.x && p.y ? `https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${p.y},${p.x}` : `https://map.kakao.com/?q=${encodeURIComponent(p.name)}`;
           return `<li class="v-item${lead ? " lead" : ""}${String(i) === voted ? " mine" : ""}">
             <div class="v-bar" style="width:${voted == null ? 0 : pct}%"></div>
             <div class="v-row">
               <div class="v-info"><b>${esc(p.name)}</b><span>${esc([p.cat, p.addr].filter(Boolean).join(" · "))}</span></div>
               ${voted == null ? `<button type="button" data-vote="${i}">투표</button>` : `<span class="v-count">${d.votes[i]}표${lead ? " 👑" : ""}</span>`}
             </div>
-            <div class="v-links"><a href="${esc(p.url || route)}" target="_blank" rel="noopener">메뉴 보기</a><a href="${esc(route)}" target="_blank" rel="noopener">길찾기</a></div>
+            <div class="v-links">${p.x ? `<a href="${esc(p.url || route)}" target="_blank" rel="noopener">메뉴 보기</a><a href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>` : `<a href="${esc(route)}" target="_blank" rel="noopener">카카오맵에서 찾기</a>`}</div>
           </li>`;
         }).join("");
         document.querySelectorAll("[data-vote]").forEach((b) => (b.onclick = () => vote(Number(b.dataset.vote))));

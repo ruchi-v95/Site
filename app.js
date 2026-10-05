@@ -395,6 +395,7 @@
   const FALLBACK = { x: 127.0276, y: 37.4979 }; // 강남역
   const locbar = $("#locbar"), locText = $("#loc-text"), locBtn = $("#loc-btn");
   let usingFallback = false;
+  let geoFailed = false; // 한 번 못 찾았으면 검색할 때마다 다시 기다리게 하지 않는다 (다시 시도 버튼으로만)
   let locName = null; // 길찾기 출발지 이름 (내 위치 또는 입력한 동네)
 
   function showLocbar(state) {
@@ -446,8 +447,8 @@
     return new Promise((resolve) => {
       if (!navigator.geolocation) { showLocbar("unavailable"); return resolve(null); }
       navigator.geolocation.getCurrentPosition(
-        (pos) => { setLoc({ x: pos.coords.longitude, y: pos.coords.latitude }); resolve(loc); },
-        (err) => { showLocbar(err && err.code === 1 ? "denied" : "unavailable"); resolve(null); },
+        (pos) => { geoFailed = false; setLoc({ x: pos.coords.longitude, y: pos.coords.latitude }); resolve(loc); },
+        (err) => { geoFailed = true; showLocbar(err && err.code === 1 ? "denied" : "unavailable"); resolve(null); },
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
       );
     });
@@ -474,12 +475,30 @@
 
   async function getLocation() {
     if (loc && !usingFallback) return loc;
+    if (usingFallback && geoFailed) return loc;
     const got = await requestLocation();
     if (got) return got;
     usingFallback = true;
-    loc = FALLBACK;
-    showNotice("위치를 알 수 없어 강남역 기준으로 추천하고 있어요.");
+    // 기기가 위치를 못 주면(PC에서 흔함) 접속한 인터넷 위치로 대략 잡고, 그것도 없으면 강남역
+    const ip = await ipLocation();
+    if (ip) {
+      loc = { x: ip.x, y: ip.y };
+      showNotice(`정확한 위치를 몰라 인터넷 접속 위치(${ip.name || "대략"}) 기준으로 추천하고 있어요. 실제와 다르면 동네 이름을 입력해 주세요.`);
+    } else {
+      loc = FALLBACK;
+      showNotice("위치를 알 수 없어 강남역 기준으로 추천하고 있어요.");
+    }
     return loc;
+  }
+
+  async function ipLocation() {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    try {
+      const r = await fetch("/api/ipgeo", { signal: ctrl.signal });
+      const d = r.ok ? await r.json() : null;
+      return d && d.x && d.y ? d : null;
+    } catch { return null; } finally { clearTimeout(t); }
   }
 
   async function initLocation() {

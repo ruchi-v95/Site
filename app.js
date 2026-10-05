@@ -406,7 +406,7 @@
       locBtn.textContent = "다시 시도";
     } else if (state === "unavailable") {
       // 권한은 있는데 기기가 위치를 못 찾는 경우 (PC에서 흔함: Windows/맥 위치 서비스 꺼짐, 유선 인터넷)
-      locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows 설정 > 개인 정보 > 위치(맥은 시스템 설정 > 개인정보 보호 > 위치 서비스)를 켜거나, 아래에 동네 이름을 입력하세요.";
+      locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows나 맥의 위치 서비스가 꺼져 있을 수 있어요. 아래에 동네 이름을 입력하면 바로 찾을 수 있어요.";
       locBtn.textContent = "다시 시도";
     } else if (state === "change") {
       locText.textContent = "다른 동네 이름을 입력하거나, 내 위치로 다시 찾을 수 있어요.";
@@ -415,6 +415,15 @@
       locText.textContent = "내 주변 가게를 찾으려면 위치 정보가 필요해요.";
       locBtn.textContent = "위치 허용";
     }
+    if (state === "denied" || state === "unavailable") helpLink(locText);
+  }
+
+  // 위치 켜는 법 안내 글로 가는 링크
+  function helpLink(el) {
+    const a = document.createElement("a");
+    a.href = "/guide/location.html"; a.target = "_blank"; a.rel = "noopener"; a.className = "help-link";
+    a.textContent = "위치 켜는 법 보기";
+    el.append(" ", a);
   }
 
   function setLoc(next, label) {
@@ -484,9 +493,11 @@
     if (ip) {
       loc = { x: ip.x, y: ip.y };
       showNotice(`정확한 위치를 몰라 인터넷 접속 위치(${ip.name || "대략"}) 기준으로 추천하고 있어요. 실제와 다르면 동네 이름을 입력해 주세요.`);
+      helpLink(notice);
     } else {
       loc = FALLBACK;
       showNotice("위치를 알 수 없어 강남역 기준으로 추천하고 있어요.");
+      helpLink(notice);
     }
     return loc;
   }
@@ -774,7 +785,7 @@
       if (b.dataset.made) return;
       b.hidden = false;
       b.disabled = tray.length < 2;
-      b.textContent = tray.length < 2 ? "👥 후보를 2개 이상 담으면 친구랑 투표할 수 있어요" : `👥 담은 후보 ${Math.min(tray.length, POLL_MAX)}개로 친구랑 투표하기`;
+      b.textContent = tray.length < 2 ? "👥 후보를 2개 담으면 친구랑 투표할 수 있어요" : `👥 담은 후보 ${Math.min(tray.length, POLL_MAX)}개로 친구랑 투표하기`;
       b.onclick = () => { b.dataset.made = "1"; startPoll(b, "", tray.slice(0, POLL_MAX)); };
     });
   }

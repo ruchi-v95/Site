@@ -295,3 +295,5 @@ main.doc .v-links a { color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { .tray.bump { animation: none; } }
 .pick [data-tray-poll][hidden] { display: none; }
+.help-link { color: var(--accent-text); font-weight: 700; white-space: nowrap; }
+.notice .help-link { margin-left: 6px; }

@@ -140,6 +140,45 @@
     }
   }
 
+  // 칩 줄: PC에서도 한 줄 가로 스크롤. 마우스 휠(세로)을 가로로 바꾸고, 끌어서 넘길 수 있게 한다.
+  function scrollRow(el) {
+    const fade = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      el.classList.toggle("fade-l", el.scrollLeft > 2);
+      el.classList.toggle("fade-r", max - el.scrollLeft > 2);
+    };
+    el.addEventListener("scroll", fade, { passive: true });
+    new ResizeObserver(fade).observe(el);
+    new MutationObserver(fade).observe(el, { childList: true });
+    el.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0 || (e.deltaY < 0 && el.scrollLeft <= 0) || (e.deltaY > 0 && el.scrollLeft >= max)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    }, { passive: false });
+    let down = null, moved = false;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      down = { x: e.clientX, left: el.scrollLeft }; moved = false;
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      const dx = e.clientX - down.x;
+      if (!moved && Math.abs(dx) > 5) { moved = true; el.classList.add("dragging"); }
+      if (moved) el.scrollLeft = down.left - dx;
+    });
+    window.addEventListener("pointerup", () => {
+      if (!down) return;
+      down = null;
+      if (moved) setTimeout(() => el.classList.remove("dragging"), 0);
+    });
+    // 끌다가 놓은 자리의 칩이 눌리지 않게
+    el.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    fade();
+  }
+  document.querySelectorAll(".chips").forEach(scrollRow);
+
   function bubble(text, who = "bot", extra = "") {
     const el = document.createElement("div");
     el.className = `msg ${who} ${extra}`.trim();

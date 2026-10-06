@@ -131,8 +131,17 @@ main.talking .dock { position: sticky; bottom: 0; background: var(--bg); padding
 }
 .chip-rows { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
 .chips::-webkit-scrollbar { display: none; }
-/* PC(마우스)에서는 옆으로 밀 수 없으니 여러 줄로 보여준다 */
-@media (hover: hover) and (pointer: fine) { .chips { flex-wrap: wrap; overflow: visible; } }
+/* PC(마우스)도 휴대폰처럼 한 줄 가로 스크롤: 휠·끌기로 옆으로 넘기고, 얇은 스크롤바와 가장자리 흐림으로 더 있다는 걸 보여준다 */
+@media (hover: hover) and (pointer: fine) {
+  .chips { scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-bottom: 6px; cursor: grab; }
+  .chips::-webkit-scrollbar { display: block; height: 6px; }
+  .chips::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .chips.dragging { cursor: grabbing; scroll-behavior: auto; }
+  .chips.dragging .chip { pointer-events: none; }
+}
+.chips.fade-r { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+.chips.fade-l { mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+.chips.fade-l.fade-r { mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
 .chip {
   flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
   border-radius: 999px; padding: 9px 14px; font-size: 14px; cursor: pointer;

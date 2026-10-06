@@ -14,7 +14,8 @@
     국물: ["국밥", "칼국수", "마라탕", "짬뽕", "쌀국수", "부대찌개", "김치찌개", "감자탕", "순두부찌개"],
     가볍게: ["샐러드", "샌드위치", "김밥", "포케", "쌀국수", "우동"],
   };
-  const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게", "아무거나"];
+  const SITUATION_CHIPS = ["점심", "저녁", "야식", "혼밥", "국물", "가볍게"];
+  const ANY_CHIP = "아무거나"; // 맨 위 줄 맨 앞
   const CHEAP_CHIP = "💰 착한가격";
   // 날씨 맞춤: 지금 날씨에 어울리는 메뉴를 상황 버튼 맨 앞에 보여준다 (기상청 초단기실황)
   const WEATHER = {
@@ -103,7 +104,8 @@
     const slot = timeSlot();
     const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
     const w = weather && WEATHER[weather];
-    fillChips($("#chips-cat"), Object.keys(CATEGORIES), (c) => ask(c, { category: c }));
+    fillChips($("#chips-cat"), [ANY_CHIP, ...Object.keys(CATEGORIES)], (c) => c === ANY_CHIP ? ask(c, { situation: c }) : ask(c, { category: c }));
+    $("#chips-cat").firstElementChild.classList.add("chip-any");
     const sit = [...(w ? [w.chip] : []), situations[0], CHEAP_CHIP, ...situations.slice(1)];
     fillChips($("#chips-sit"), sit, (c) =>
       w && c === w.chip ? ask(c, { foods: w.foods }) : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));

@@ -304,3 +304,4 @@ main.doc .v-links a { color: var(--muted); }
 .pick [data-tray-poll][hidden] { display: none; }
 .help-link { color: var(--accent-text); font-weight: 700; white-space: nowrap; }
 .notice .help-link { margin-left: 6px; }
+.chip.chip-any { font-weight: 600; }

@@ -998,4 +998,12 @@
   renderChips();
   initLocation();
   startRotator();
+  // 안내 글 등에서 ?pick=야식 처럼 들어오면 그 버튼을 바로 눌러준다
+  try {
+    const want = (new URLSearchParams(location.search).get("pick") || "").trim().slice(0, 20);
+    if (want) {
+      const chip = [...document.querySelectorAll(".chip")].find((b) => b.textContent === want || b.textContent.replace(/^\S+\s/, "") === want);
+      setTimeout(() => (chip ? chip.click() : ask(want)), 300);
+    }
+  } catch {}
 })();

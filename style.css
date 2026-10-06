@@ -226,7 +226,7 @@ main.talking .locbar { margin-top: 8px; }
 .demo-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 
 /* 하단 링크 */
-.foot { display: flex; justify-content: center; gap: 14px; padding: 12px 0 4px; font-size: 12px; }
+.foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; padding: 12px 0 4px; font-size: 12px; }
 .foot a { color: var(--muted); text-decoration: none; }
 .foot a:hover { text-decoration: underline; }
 main.talking .foot { display: none; }
@@ -305,3 +305,5 @@ main.doc .v-links a { color: var(--muted); }
 .help-link { color: var(--accent-text); font-weight: 700; white-space: nowrap; }
 .notice .help-link { margin-left: 6px; }
 .chip.chip-any { font-weight: 600; }
+main.doc .guide-list li { margin-bottom: 10px; }
+main.doc .guide-list small { color: var(--muted); font-size: 13px; }

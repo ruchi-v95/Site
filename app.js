@@ -450,8 +450,12 @@
     locbar.hidden = false;
     locBtn.hidden = false;
     if (state === "denied") {
-      locText.textContent = "위치 권한이 꺼져 있어요. 주소창 왼쪽 아이콘에서 위치를 허용한 뒤 다시 시도를 누르거나, 아래에 동네 이름을 입력하세요.";
+      // 브라우저에서 '차단'을 누른 상태면 사이트가 다시 물어볼 수 없다. 설정을 바꾸면 아래 watchPermission이 바로 다시 찾는다
+      locText.textContent = "브라우저에서 위치를 차단해 둔 상태라 다시 물어볼 수 없어요. 주소창 왼쪽 아이콘을 눌러 위치를 '허용'하거나 '권한 재설정'을 누르면 바로 다시 찾아요. 아래에 동네 이름을 입력해도 돼요.";
       locBtn.textContent = "다시 시도";
+    } else if (state === "dismissed") {
+      locText.textContent = "위치 허용 창이 닫혔어요. 아래 버튼을 누르면 다시 물어볼게요.";
+      locBtn.textContent = "위치 다시 허용하기";
     } else if (state === "unavailable") {
       // 권한은 있는데 기기가 위치를 못 찾는 경우 (PC에서 흔함: Windows/맥 위치 서비스 꺼짐, 유선 인터넷)
       locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows나 맥의 위치 서비스가 꺼져 있을 수 있어요. 아래에 동네 이름을 입력하면 바로 찾을 수 있어요.";
@@ -505,7 +509,13 @@
       if (!navigator.geolocation) { showLocbar("unavailable"); return resolve(null); }
       navigator.geolocation.getCurrentPosition(
         (pos) => { geoFailed = false; setLoc({ x: pos.coords.longitude, y: pos.coords.latitude }); resolve(loc); },
-        (err) => { geoFailed = true; showLocbar(err && err.code === 1 ? "denied" : "unavailable"); resolve(null); },
+        async (err) => {
+          geoFailed = true;
+          let state = err && err.code === 1 ? "denied" : "unavailable";
+          // 허용 창을 그냥 닫은 경우는 아직 '다시 묻기' 상태라 다시 시도하면 또 물어볼 수 있다
+          if (state === "denied") try { if ((await navigator.permissions.query({ name: "geolocation" })).state === "prompt") state = "dismissed"; } catch {}
+          showLocbar(state); resolve(null);
+        },
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
       );
     });
@@ -567,12 +577,33 @@
     } catch {}
     if (state === "granted") requestLocation(); // 이미 허용됨: 조용히 미리 가져온다
     else showLocbar(state);
+    watchPermission();
+  }
+
+  // 주소창에서 위치 권한을 바꾸면 새로고침 없이 바로 반영한다.
+  // 허용 → 바로 내 위치로, 권한 재설정(다시 묻기 상태) → 바로 다시 물어본다.
+  async function watchPermission() {
+    try {
+      if (!navigator.permissions) return;
+      const st = await navigator.permissions.query({ name: "geolocation" });
+      st.onchange = async () => {
+        if (st.state === "denied") return showLocbar("denied");
+        locText.textContent = "위치를 확인하는 중…";
+        const got = await requestLocation();
+        if (got && current) {
+          current.pages.clear(); current.used.clear();
+          if (app.classList.contains("talking")) bubble("이제 내 위치 근처에서 찾을게요.");
+        }
+      };
+    } catch {}
   }
 
   locBtn.addEventListener("click", async () => {
     locBtn.disabled = true;
     locText.textContent = "위치를 확인하는 중…";
-    await requestLocation();
+    // 다시 묻기 상태면 브라우저가 허용 창을 다시 띄운다. 차단 상태면 바꾸는 방법을 안내한다
+    const got = await requestLocation();
+    if (got && current) { current.pages.clear(); current.used.clear(); }
     locBtn.disabled = false;
   });
 

@@ -240,6 +240,13 @@ main.doc .mark a { text-decoration: none; }
 main.doc .doc-date { color: var(--muted); font-size: 13px; margin: -4px 0 16px; }
 main.doc .doc-back { margin-top: 36px; }
 main.doc .doc-cta { margin-top: 28px; }
+main.doc h3 { font-size: 15px; margin: 18px 0 4px; }
+/* 게임 소개 글: 메뉴가 미리 들어간 게임 바로 열기 */
+main.doc .preset-lead { margin: 18px 0 8px; color: var(--muted); font-size: 13px; }
+main.doc .presets { list-style: none; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+main.doc .presets li { max-width: none; }
+main.doc .presets a { display: block; height: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--fg); text-decoration: none; font-weight: 700; }
+main.doc .presets small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; margin-top: 2px; }
 main.doc .doc-cta a { display: inline-block; padding: 12px 18px; border-radius: 999px; background: #c53a16; color: #fff; font-weight: 800; text-decoration: none; }
 
 /* 의견 보내기 */

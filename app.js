@@ -225,7 +225,7 @@
     const route = routeUrl(p);
     const moreWord = p.cheap ? "착한가격" : cat || query;
     el.innerHTML = `
-      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}${p.cheap ? '<span class="cheap-tag">착한가격업소</span>' : ""}</p>
+      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}${p.cheap ? '<span class="cheap-tag">착한가격업소</span>' : ""}${p.hot ? '<span class="cheap-tag hot-tag">🔥 리뷰 많은 집</span>' : ""}</p>
       <h2>${esc(p.place_name)}</h2>
       ${p.menus && p.menus.length ? `<p class="menus">${p.menus.map(([m, won]) => `${esc(m)} <b>${Number(won).toLocaleString()}원</b>`).join(" · ")}</p>` : ""}
       ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
@@ -570,6 +570,23 @@
   });
 
   // ---------- 검색 (서버가 없으면 예시 데이터) ----------
+  // 네이버 리뷰 많은 순 인기 가게. 키가 없거나 실패하면 빈 목록 (카카오 결과만 쓴다)
+  const hotCache = new Map();
+  async function popularPlaces(query, { x, y }, radius = MODES[travel].radius) {
+    const key = `${query}|${x.toFixed(3)}|${y.toFixed(3)}|${radius}`;
+    if (!hotCache.has(key)) {
+      hotCache.set(key, (async () => {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 4000);
+        try {
+          const r = await fetch(`/api/popular?q=${encodeURIComponent(query)}&x=${x.toFixed(4)}&y=${y.toFixed(4)}&radius=${radius}`, { signal: ctrl.signal });
+          return r.ok ? (await r.json()).places || [] : [];
+        } catch { return []; } finally { clearTimeout(t); }
+      })());
+    }
+    return hotCache.get(key);
+  }
+
   async function searchPlaces(query, { x, y }, page = 1, radius = MODES[travel].radius, sort = "accuracy") {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 8000);
@@ -780,6 +797,15 @@
 
   // 카카오 정확도순(많이 찾는 가게가 앞) 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
   async function nextPlace(ctx, query, here) {
+    // 동네에서 리뷰 많은 집(네이버)이 반경 안에 있으면 그중에서 먼저 뽑는다
+    const hot = (await popularPlaces(query, here)).filter((p) => !ctx.shown.has(p.id) && !isExcluded(p) && matches(p, query));
+    if (hot.length) {
+      const p = hot[Math.floor(Math.random() * hot.length)];
+      ctx.shown.add(p.id);
+      ctx.pool = hot.map((q) => q.place_name);
+      ctx.fresh = hot;
+      return p;
+    }
     let page = ctx.pages.get(query) || 1;
     while (page <= MAX_PAGE) {
       const { places, end, failed } = await searchPlaces(query, here, page);

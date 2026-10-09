@@ -446,12 +446,33 @@
   let geoFailed = false; // 한 번 못 찾았으면 검색할 때마다 다시 기다리게 하지 않는다 (다시 시도 버튼으로만)
   let locName = null; // 길찾기 출발지 이름 (내 위치 또는 입력한 동네)
 
+  // 크롬 144+의 <geolocation> 버튼: 브라우저가 직접 그리는 버튼이라, 전에 '차단'했어도 누르면 다시 허용하는 창을 띄워준다.
+  // 지원하지 않는 브라우저는 기존 버튼(locBtn)을 그대로 쓴다.
+  const geoEl = "HTMLGeolocationElement" in window ? document.createElement("geolocation") : null;
+  if (geoEl) {
+    geoEl.className = "geo-el";
+    geoEl.addEventListener("location", async () => {
+      if (geoEl.position) {
+        geoFailed = false;
+        setLoc({ x: geoEl.position.coords.longitude, y: geoEl.position.coords.latitude });
+        if (current) { current.pages.clear(); current.used.clear(); }
+        if (app.classList.contains("talking")) bubble("이제 내 위치 근처에서 찾을게요.");
+      } else if (geoEl.error) {
+        geoFailed = true;
+        showLocbar(geoEl.error.code === 1 ? "denied" : "unavailable");
+      }
+    });
+    locBtn.after(geoEl);
+  }
+
   function showLocbar(state) {
     locbar.hidden = false;
-    locBtn.hidden = false;
+    locBtn.hidden = !!geoEl;
     if (state === "denied") {
       // 브라우저에서 '차단'을 누른 상태면 사이트가 다시 물어볼 수 없다. 설정을 바꾸면 아래 watchPermission이 바로 다시 찾는다
-      locText.textContent = "브라우저에서 위치를 차단해 둔 상태라 다시 물어볼 수 없어요. 주소창 왼쪽 아이콘을 눌러 위치를 '허용'하거나 '권한 재설정'을 누르면 바로 다시 찾아요. 아래에 동네 이름을 입력해도 돼요.";
+      locText.textContent = geoEl
+        ? "위치가 차단돼 있어요. 옆의 위치 버튼을 누르면 다시 허용할 수 있어요. 아래에 동네 이름을 입력해도 돼요."
+        : "브라우저에서 위치를 차단해 둔 상태라 다시 물어볼 수 없어요. 주소창 왼쪽 아이콘을 눌러 위치를 '허용'하거나 '권한 재설정'을 누르면 바로 다시 찾아요. 아래에 동네 이름을 입력해도 돼요.";
       locBtn.textContent = "다시 시도";
     } else if (state === "dismissed") {
       locText.textContent = "위치 허용 창이 닫혔어요. 아래 버튼을 누르면 다시 물어볼게요.";

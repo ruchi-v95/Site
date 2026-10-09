@@ -160,6 +160,7 @@ main.talking .dock { position: sticky; bottom: 0; background: var(--bg); padding
   background: var(--accent); color: var(--accent-fg); cursor: pointer;
 }
 .locbar button:disabled { opacity: .6; }
+.locbar .geo-el { flex: none; border-radius: 10px; } /* 크롬이 그리는 위치 버튼: 색은 브라우저 기본값 (대비 규칙을 어기면 버튼이 꺼진다) */
 main.talking .locbar { margin-top: 8px; }
 .notice { color: var(--muted); font-size: 12px; text-align: center; margin: 8px 0 0; }
 .notice-btn, .msg .retry {

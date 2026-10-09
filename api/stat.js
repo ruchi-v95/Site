@@ -12,6 +12,7 @@ const EVENTS = new Set([
   "from_share",  // 공유 글의 링크로 들어옴
   "from_vote",   // 투표 화면에서 들어옴
   "from_guide",  // 메뉴 추천 글에서 들어옴
+  "from_sns",    // SNS 게시물 링크로 들어옴 (?from=sns-instagram 등)
 ]);
 const KEEP = 400 * 24 * 3600; // 1년 넘게 보관해서 작년 같은 달과 비교한다
 

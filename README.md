@@ -43,7 +43,7 @@ Vercel Web Analytics를 씁니다(무료, 쿠키 없음). Vercel 프로젝트의
 | `share` | 추천·게임 결과 공유하기 |
 | `poll` / `vote_view` / `vote` | 투표 만들기 / 투표 링크 열기 / 투표하기 |
 | `game` | 게임 열기 |
-| `from_share` / `from_vote` / `from_guide` | 공유 글 / 투표 화면 / 메뉴 추천 글의 링크로 들어옴 |
+| `from_share` / `from_vote` / `from_guide` / `from_sns` | 공유 글 / 투표 화면 / 메뉴 추천 글 / SNS 게시물의 링크로 들어옴 (`?from=guide-dinner`, `?from=sns-instagram`처럼 뒤에 붙인 이름은 앞 단어로 셈) |
 
 합계 보기: Vercel 환경변수 `STATS_TOKEN`에 아무도 모르는 긴 문자열을 넣고 다시 배포한 뒤
 `curl -H "Authorization: Bearer <STATS_TOKEN>" "https://odaengmwo.com/api/stat?days=14"`

@@ -1031,10 +1031,10 @@
   renderChips();
   initLocation();
   startRotator();
-  // 공유 글·투표 화면·안내 글에서 들어온 횟수 (?from=share|vote|guide, guide-글이름도 guide로 센다)
+  // 공유 글·투표 화면·안내 글에서 들어온 횟수 (?from=share|vote|guide|sns, guide-글이름·sns-채널도 앞 단어로 센다)
   try {
     const from = (new URLSearchParams(location.search).get("from") || "").split("-")[0]; // guide-dinner → guide
-    if (["share", "vote", "guide"].includes(from)) track(`from_${from}`);
+    if (["share", "vote", "guide", "sns"].includes(from)) track(`from_${from}`);
   } catch {}
   // 안내 글 등에서 ?pick=야식 처럼 들어오면 그 버튼을 바로 눌러준다
   try {

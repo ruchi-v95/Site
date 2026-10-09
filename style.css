@@ -43,6 +43,9 @@ body {
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* 한국어는 낱말 중간("저/녁")에서 줄이 바뀌지 않게. 아주 긴 주소·링크만 어디서든 끊는다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 main {

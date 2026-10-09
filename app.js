@@ -1046,9 +1046,9 @@
   // ---------- 배너 단어 순환 ----------
   function startRotator() {
     const words = ["점심", "저녁", "야식", "간식"];
-    const el = $("#rot-word"), sr = $("#rot-sr");
+    const el = $("#rot-word");
     let i = Math.max(0, words.indexOf(timeSlot()));
-    el.textContent = sr.textContent = words[i];
+    el.textContent = words[i];
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // 움직임 줄이기: 지금 시간대 단어로 고정
     setInterval(() => {
       if (document.hidden) return;

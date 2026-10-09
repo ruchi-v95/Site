@@ -1,4 +1,5 @@
-// 카카오 로컬 API로 주변 음식점을 거리순으로 찾는다. 키는 서버에만 둔다.
+// 카카오 로컬 API로 주변 음식점을 찾는다. 키는 서버에만 둔다.
+// sort=accuracy(기본): 카카오맵 검색 순서라 많이 찾는 가게가 앞에 온다. sort=distance: 가까운 순(더보기 목록).
 const KAKAO_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
 
 export default async function handler(req, res) {
@@ -10,6 +11,7 @@ export default async function handler(req, res) {
   const x = Number(req.query.x);
   const y = Number(req.query.y);
   const page = Math.min(3, Math.max(1, parseInt(req.query.page, 10) || 1));
+  const sort = req.query.sort === "distance" ? "distance" : "accuracy";
   const radius = Math.min(5000, Math.max(500, parseInt(req.query.radius, 10) || 1000)); // 걸어서 1km, 차로 3km
   // 대한민국 대략 범위 밖 좌표는 거절
   if (!q || !(x > 124 && x < 132) || !(y > 33 && y < 39)) {
@@ -22,7 +24,7 @@ export default async function handler(req, res) {
     x: String(x),
     y: String(y),
     radius: String(radius),
-    sort: "distance",
+    sort,
     size: "15",
     page: String(page),
   });

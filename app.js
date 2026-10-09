@@ -352,7 +352,7 @@
     btn.textContent = "찾는 중…";
     const here = await getLocation();
     while (st.list.length - st.idx < 5 && !st.end && st.page < MAX_PAGE) {
-      const { places, end, failed } = await searchPlaces(word, here, st.page + 1, st.radius);
+      const { places, end, failed } = await searchPlaces(word, here, st.page + 1, st.radius, "distance");
       if (failed) { btn.disabled = false; btn.textContent = "불러오지 못했어요 · 다시"; return; }
       st.page += 1;
       for (const q of places) if (!st.seen.has(q.id) && matches(q, word)) { st.seen.add(q.id); st.list.push(q); }
@@ -570,11 +570,11 @@
   });
 
   // ---------- 검색 (서버가 없으면 예시 데이터) ----------
-  async function searchPlaces(query, { x, y }, page = 1, radius = MODES[travel].radius) {
+  async function searchPlaces(query, { x, y }, page = 1, radius = MODES[travel].radius, sort = "accuracy") {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 8000);
     try {
-      const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&x=${x}&y=${y}&page=${page}&radius=${radius}`, { signal: ctrl.signal });
+      const r = await fetch(`/api/places?q=${encodeURIComponent(query)}&x=${x}&y=${y}&page=${page}&radius=${radius}&sort=${sort}`, { signal: ctrl.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       return { places: data.places || [], end: !!data.is_end };
@@ -778,7 +778,7 @@
     }
   }
 
-  // 거리순 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
+  // 카카오 정확도순(많이 찾는 가게가 앞) 결과 앞쪽에서 아직 안 보여준 곳을 무작위로 하나. 다 보여줬으면 다음 페이지.
   async function nextPlace(ctx, query, here) {
     let page = ctx.pages.get(query) || 1;
     while (page <= MAX_PAGE) {

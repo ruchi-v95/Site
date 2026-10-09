@@ -22,13 +22,14 @@
     <p id="v-sub" class="v-sub">불러오는 중…</p>
     <ol id="v-list" class="v-list"></ol>
     <p class="v-foot"><button id="v-share" type="button" hidden>이 투표 공유하기</button></p>
-    <p class="doc-back"><a href="/">← 나도 메뉴 고르기</a></p>
+    <p class="doc-back"><a href="/?from=vote">← 나도 메뉴 고르기</a></p>
   </main>
   <script>
     (() => {
       const id = new URLSearchParams(location.search).get("id") || "";
       const KEY = "wmm.voted." + id;
       const $ = (s) => document.querySelector(s);
+      const track = (e) => { try { navigator.sendBeacon && navigator.sendBeacon(`/api/stat?e=${e}`); } catch {} };
       const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const getVoted = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
       const setVoted = (i) => { try { localStorage.setItem(KEY, String(i)); } catch {} };
@@ -77,6 +78,7 @@
           const r = await fetch(`/api/poll?id=${encodeURIComponent(id)}&vote=${i}`, { method: "POST" });
           if (!r.ok) throw new Error();
           setVoted(i);
+          track("vote");
           render(await r.json());
         } catch { $("#v-sub").textContent = "투표하지 못했어요. 다시 눌러주세요."; }
         busy = false;
@@ -87,6 +89,7 @@
         try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); $("#v-share").textContent = "링크를 복사했어요"; } } catch {}
       };
 
+      track("vote_view");
       refresh();
       setInterval(refresh, 5000);
     })();

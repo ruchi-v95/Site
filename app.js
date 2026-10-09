@@ -232,14 +232,21 @@
       <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
       ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
       <div class="actions">
-        <a class="primary" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
-        <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
-        <button type="button" data-more>${esc(moreWord)} 더보기</button>
-        <button type="button" data-share>공유하기</button>
-        <button type="button" data-again>다시 뽑기</button>
-        <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
+        <a class="primary wide" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
+        <div class="pair wide">
+          <button type="button" data-again>다시 뽑기</button>
+          <button type="button" class="share" data-share>공유하기</button>
+        </div>
         <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? TRAY_ON : TRAY_OFF}</button>
         ${p.demo ? "" : `<button type="button" class="wide" data-tray-poll hidden></button>`}
+        <details class="extra wide">
+          <summary>다른 선택지</summary>
+          <div class="extra-grid">
+            <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
+            <button type="button" data-more>${esc(moreWord)} 더보기</button>
+            <button type="button" class="wide" data-again data-skip>${esc(skipWord(p, query))} 빼고 다시 뽑기</button>
+          </div>
+        </details>
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
@@ -1005,22 +1012,8 @@
     }, 2200);
   }
 
-  // 배너 아래 "일하는 중" 문구를 장난스럽게 바꿔가며 보여준다
-  function startBeta() {
-    const el = $("#beta-msg");
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const lines = ["열심히 고치는 중", "개발자 삽질 중 ⛏️", "버그 잡는 중 🐛", "맛집 데이터 닦는 중 🧽", "커피 수혈 중 ☕", "야근 중 🌙"];
-    let i = 0;
-    setInterval(() => {
-      if (document.hidden || app.classList.contains("talking")) return;
-      el.classList.add("swap");
-      setTimeout(() => { i = (i + 1) % lines.length; el.textContent = lines[i]; el.classList.remove("swap"); }, 250);
-    }, 2600);
-  }
-
   renderModes();
   renderTray();
-  startBeta();
   renderChips();
   initLocation();
   startRotator();

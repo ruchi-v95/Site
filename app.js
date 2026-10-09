@@ -950,12 +950,13 @@
     const js = Object.assign(document.createElement("script"), { src: "/game.js" });
     return (gameLoad = Promise.all([get(css), get(js)]).catch((e) => { gameLoad = null; throw e; }));
   }
-  async function startGame() {
+  // preset: 게임 소개 페이지에서 ?items=짜장면,짬뽕 처럼 넘겨준 메뉴 후보 (없으면 담아 둔 후보)
+  async function startGame(preset) {
     trayBtn.disabled = true;
     try { await loadGame(); } catch { trayBtn.disabled = false; bubble("게임을 불러오지 못했어요. 잠시 후 다시 눌러주세요."); return; }
     trayBtn.disabled = false;
     window.OdGame.open({
-      items: tray.slice(), ideas: MENU_IDEAS, emojiOf, game: lastGame,
+      items: Array.isArray(preset) ? preset : tray.slice(), ideas: MENU_IDEAS, emojiOf, game: lastGame,
       onChange: (list) => { tray = list.map(slim); saveTray(); renderTray(); },
       onGame: (g) => { lastGame = g; try { localStorage.setItem(GAME_KEY, g); } catch {} },
       onPick: (p, gameName, list) => renderGameResult(p, gameName, list),
@@ -1069,6 +1070,16 @@
   renderChips();
   initLocation();
   startRotator();
+  // 게임 소개 페이지에서 ?game=wheel&items=짜장면,짬뽕 처럼 들어오면 그 게임을 바로 연다 (game=vote는 마지막 게임으로 열기)
+  try {
+    const q = new URLSearchParams(location.search), g = q.get("game");
+    if (g === "vote" || ["race", "wheel", "ladder", "bomb"].includes(g)) {
+      if (g !== "vote") lastGame = g;
+      const names = (q.get("items") || "").split(",").map((t) => t.trim().slice(0, 20)).filter(Boolean);
+      const preset = [...new Set(names)].slice(0, POLL_MAX).map((name) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: true }));
+      setTimeout(() => startGame(preset.length ? preset : undefined), 300);
+    }
+  } catch {}
   // 안내 글 등에서 ?pick=야식 처럼 들어오면 그 버튼을 바로 눌러준다
   try {
     const want = (new URLSearchParams(location.search).get("pick") || "").trim().slice(0, 20);

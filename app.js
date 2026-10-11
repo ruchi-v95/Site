@@ -1008,7 +1008,10 @@
       </div>`;
     el.querySelector("[data-find]").onclick = (e) => { e.currentTarget.disabled = true; ask(name); };
     const shareBtn = el.querySelector("[data-share]");
-    shareBtn.onclick = () => shareText(shareBtn, `오늘 메뉴는 ${name}! 🎮 ${gameName} 게임으로 정했어요\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com`);
+    // 받은 사람이 링크를 누르면 같은 게임이 같은 메뉴 후보로 바로 열린다
+    const menus = list.filter((q) => q.menu).map((q) => q.place_name).slice(0, POLL_MAX);
+    const again = menus.length >= 2 ? `https://odaengmwo.com/?game=${lastGame}&items=${encodeURIComponent(menus.join(","))}&from=share` : "https://odaengmwo.com/?from=share";
+    shareBtn.onclick = () => shareText(shareBtn, `오늘 메뉴는 ${name}! 🎮 ${gameName} 게임으로 정했어요\n\n같은 후보로 나도 해보기 👉 ${again}`);
     el.querySelector("[data-replay]").onclick = startGame;
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });

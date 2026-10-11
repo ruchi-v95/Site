@@ -234,14 +234,21 @@
       <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
       ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
       <div class="actions">
-        <a class="primary" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
-        <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
-        <button type="button" data-more>${esc(moreWord)} 더보기</button>
-        <button type="button" data-share>공유하기</button>
-        <button type="button" data-again>다시 뽑기</button>
-        <button type="button" data-again data-skip>${esc(skipWord(p, query))} 빼고</button>
+        <a class="primary wide" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
+        <div class="pair wide">
+          <button type="button" data-again>다시 뽑기</button>
+          <button type="button" class="share" data-share>공유하기</button>
+        </div>
         <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? TRAY_ON : TRAY_OFF}</button>
         ${p.demo ? "" : `<button type="button" class="wide" data-tray-poll hidden></button>`}
+        <details class="extra wide">
+          <summary>다른 선택지</summary>
+          <div class="extra-grid">
+            <a href="${esc(p.place_url || route)}" target="_blank" rel="noopener">메뉴 보기</a>
+            <button type="button" data-more>${esc(moreWord)} 더보기</button>
+            <button type="button" class="wide" data-again data-skip>${esc(skipWord(p, query))} 빼고 다시 뽑기</button>
+          </div>
+        </details>
       </div>
       <ul class="more" hidden></ul>`;
     el.querySelector("[data-again]").onclick = () => pick();
@@ -443,12 +450,37 @@
   let geoFailed = false; // 한 번 못 찾았으면 검색할 때마다 다시 기다리게 하지 않는다 (다시 시도 버튼으로만)
   let locName = null; // 길찾기 출발지 이름 (내 위치 또는 입력한 동네)
 
+  // 크롬 144+의 <geolocation> 버튼: 브라우저가 직접 그리는 버튼이라, 전에 '차단'했어도 누르면 다시 허용하는 창을 띄워준다.
+  // 지원하지 않는 브라우저는 기존 버튼(locBtn)을 그대로 쓴다.
+  const geoEl = "HTMLGeolocationElement" in window ? document.createElement("geolocation") : null;
+  if (geoEl) {
+    geoEl.className = "geo-el";
+    geoEl.addEventListener("location", async () => {
+      if (geoEl.position) {
+        geoFailed = false;
+        setLoc({ x: geoEl.position.coords.longitude, y: geoEl.position.coords.latitude });
+        if (current) { current.pages.clear(); current.used.clear(); }
+        if (app.classList.contains("talking")) bubble("이제 내 위치 근처에서 찾을게요.");
+      } else if (geoEl.error) {
+        geoFailed = true;
+        showLocbar(geoEl.error.code === 1 ? "denied" : "unavailable");
+      }
+    });
+    locBtn.after(geoEl);
+  }
+
   function showLocbar(state) {
     locbar.hidden = false;
-    locBtn.hidden = false;
+    locBtn.hidden = !!geoEl;
     if (state === "denied") {
-      locText.textContent = "위치 권한이 꺼져 있어요. 주소창 왼쪽 아이콘에서 위치를 허용한 뒤 다시 시도를 누르거나, 아래에 동네 이름을 입력하세요.";
+      // 브라우저에서 '차단'을 누른 상태면 사이트가 다시 물어볼 수 없다. 설정을 바꾸면 아래 watchPermission이 바로 다시 찾는다
+      locText.textContent = geoEl
+        ? "위치가 차단돼 있어요. 옆의 위치 버튼을 누르면 다시 허용할 수 있어요. 아래에 동네 이름을 입력해도 돼요."
+        : "브라우저에서 위치를 차단해 둔 상태라 다시 물어볼 수 없어요. 주소창 왼쪽 아이콘을 눌러 위치를 '허용'하거나 '권한 재설정'을 누르면 바로 다시 찾아요. 아래에 동네 이름을 입력해도 돼요.";
       locBtn.textContent = "다시 시도";
+    } else if (state === "dismissed") {
+      locText.textContent = "위치 허용 창이 닫혔어요. 아래 버튼을 누르면 다시 물어볼게요.";
+      locBtn.textContent = "위치 다시 허용하기";
     } else if (state === "unavailable") {
       // 권한은 있는데 기기가 위치를 못 찾는 경우 (PC에서 흔함: Windows/맥 위치 서비스 꺼짐, 유선 인터넷)
       locText.textContent = "이 기기에서 위치를 찾지 못했어요. PC라면 Windows나 맥의 위치 서비스가 꺼져 있을 수 있어요. 아래에 동네 이름을 입력하면 바로 찾을 수 있어요.";
@@ -502,7 +534,13 @@
       if (!navigator.geolocation) { showLocbar("unavailable"); return resolve(null); }
       navigator.geolocation.getCurrentPosition(
         (pos) => { geoFailed = false; setLoc({ x: pos.coords.longitude, y: pos.coords.latitude }); resolve(loc); },
-        (err) => { geoFailed = true; showLocbar(err && err.code === 1 ? "denied" : "unavailable"); resolve(null); },
+        async (err) => {
+          geoFailed = true;
+          let state = err && err.code === 1 ? "denied" : "unavailable";
+          // 허용 창을 그냥 닫은 경우는 아직 '다시 묻기' 상태라 다시 시도하면 또 물어볼 수 있다
+          if (state === "denied") try { if ((await navigator.permissions.query({ name: "geolocation" })).state === "prompt") state = "dismissed"; } catch {}
+          showLocbar(state); resolve(null);
+        },
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
       );
     });
@@ -564,12 +602,33 @@
     } catch {}
     if (state === "granted") requestLocation(); // 이미 허용됨: 조용히 미리 가져온다
     else showLocbar(state);
+    watchPermission();
+  }
+
+  // 주소창에서 위치 권한을 바꾸면 새로고침 없이 바로 반영한다.
+  // 허용 → 바로 내 위치로, 권한 재설정(다시 묻기 상태) → 바로 다시 물어본다.
+  async function watchPermission() {
+    try {
+      if (!navigator.permissions) return;
+      const st = await navigator.permissions.query({ name: "geolocation" });
+      st.onchange = async () => {
+        if (st.state === "denied") return showLocbar("denied");
+        locText.textContent = "위치를 확인하는 중…";
+        const got = await requestLocation();
+        if (got && current) {
+          current.pages.clear(); current.used.clear();
+          if (app.classList.contains("talking")) bubble("이제 내 위치 근처에서 찾을게요.");
+        }
+      };
+    } catch {}
   }
 
   locBtn.addEventListener("click", async () => {
     locBtn.disabled = true;
     locText.textContent = "위치를 확인하는 중…";
-    await requestLocation();
+    // 다시 묻기 상태면 브라우저가 허용 창을 다시 띄운다. 차단 상태면 바꾸는 방법을 안내한다
+    const got = await requestLocation();
+    if (got && current) { current.pages.clear(); current.used.clear(); }
     locBtn.disabled = false;
   });
 
@@ -896,13 +955,14 @@
     const js = Object.assign(document.createElement("script"), { src: "/game.js" });
     return (gameLoad = Promise.all([get(css), get(js)]).catch((e) => { gameLoad = null; throw e; }));
   }
-  async function startGame() {
+  // preset: 게임 소개 페이지에서 ?items=짜장면,짬뽕 처럼 넘겨준 메뉴 후보 (없으면 담아 둔 후보)
+  async function startGame(preset) {
     track("game");
     trayBtn.disabled = true;
     try { await loadGame(); } catch { trayBtn.disabled = false; bubble("게임을 불러오지 못했어요. 잠시 후 다시 눌러주세요."); return; }
     trayBtn.disabled = false;
     window.OdGame.open({
-      items: tray.slice(), ideas: MENU_IDEAS, emojiOf, game: lastGame,
+      items: Array.isArray(preset) ? preset : tray.slice(), ideas: MENU_IDEAS, emojiOf, game: lastGame,
       onChange: (list) => { tray = list.map(slim); saveTray(); renderTray(); },
       onGame: (g) => { lastGame = g; try { localStorage.setItem(GAME_KEY, g); } catch {} },
       onPick: (p, gameName, list) => renderGameResult(p, gameName, list),
@@ -994,9 +1054,9 @@
   // ---------- 배너 단어 순환 ----------
   function startRotator() {
     const words = ["점심", "저녁", "야식", "간식"];
-    const el = $("#rot-word"), sr = $("#rot-sr");
+    const el = $("#rot-word");
     let i = Math.max(0, words.indexOf(timeSlot()));
-    el.textContent = sr.textContent = words[i];
+    el.textContent = words[i];
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // 움직임 줄이기: 지금 시간대 단어로 고정
     setInterval(() => {
       if (document.hidden) return;
@@ -1012,22 +1072,8 @@
     }, 2200);
   }
 
-  // 배너 아래 "일하는 중" 문구를 장난스럽게 바꿔가며 보여준다
-  function startBeta() {
-    const el = $("#beta-msg");
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const lines = ["열심히 고치는 중", "개발자 삽질 중 ⛏️", "버그 잡는 중 🐛", "맛집 데이터 닦는 중 🧽", "커피 수혈 중 ☕", "야근 중 🌙"];
-    let i = 0;
-    setInterval(() => {
-      if (document.hidden || app.classList.contains("talking")) return;
-      el.classList.add("swap");
-      setTimeout(() => { i = (i + 1) % lines.length; el.textContent = lines[i]; el.classList.remove("swap"); }, 250);
-    }, 2600);
-  }
-
   renderModes();
   renderTray();
-  startBeta();
   renderChips();
   initLocation();
   startRotator();
@@ -1035,6 +1081,16 @@
   try {
     const from = (new URLSearchParams(location.search).get("from") || "").split("-")[0]; // guide-dinner → guide
     if (["share", "vote", "guide", "sns"].includes(from)) track(`from_${from}`);
+  } catch {}
+  // 게임 소개 페이지에서 ?game=wheel&items=짜장면,짬뽕 처럼 들어오면 그 게임을 바로 연다 (game=vote는 마지막 게임으로 열기)
+  try {
+    const q = new URLSearchParams(location.search), g = q.get("game");
+    if (g === "vote" || ["race", "wheel", "ladder", "bomb"].includes(g)) {
+      if (g !== "vote") lastGame = g;
+      const names = (q.get("items") || "").split(",").map((t) => t.trim().slice(0, 20)).filter(Boolean);
+      const preset = [...new Set(names)].slice(0, POLL_MAX).map((name) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: true }));
+      setTimeout(() => startGame(preset.length ? preset : undefined), 300);
+    }
   } catch {}
   // 안내 글 등에서 ?pick=야식 처럼 들어오면 그 버튼을 바로 눌러준다
   try {

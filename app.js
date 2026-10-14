@@ -62,6 +62,8 @@
   };
 
   const $ = (s) => document.querySelector(s);
+  // 사용 횟수 세기 (api/stat.js). 실패해도 화면에는 영향 없다
+  const track = (e) => { try { navigator.sendBeacon && navigator.sendBeacon(`/api/stat?e=${e}`); } catch {} };
   const app = $("#app"), chat = $("#chat"), form = $("#ask"), input = $("#q"), notice = $("#notice");
 
   let loc = null;      // {x: 경도, y: 위도}
@@ -278,6 +280,7 @@
       if (!r.ok) throw new Error(String(r.status));
       const { id } = await r.json();
       const link = `${location.origin}/vote.html?id=${id}`;
+      track("poll");
       const ask = places.every((q) => q.menu) ? "오늘 뭐 먹을까?" : label ? `오늘 ${label} 어디서 먹을까?` : "오늘 어디서 먹을까?";
       const text = `${ask} 투표해줘 🗳️\n${places.map((q) => "· " + q.place_name).join("\n")}\n${link}`;
       btn.disabled = false;
@@ -328,8 +331,9 @@
 
   // 카톡·문자 등 휴대폰 공유 창으로 보내기. 공유 창이 없는 PC에서는 글을 복사한다.
   async function sharePick(btn, label, p) {
+    track("share");
     const link = p.place_url || destUrl(p);
-    const text = `오늘은 ${label}! "${p.place_name}" 어때?\n${link}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com`;
+    const text = `오늘은 ${label}! "${p.place_name}" 어때?\n${link}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com/?from=share`;
     try {
       if (navigator.share) { await navigator.share({ title: "오땡뭐!", text }); return; }
       await navigator.clipboard.writeText(text);
@@ -723,6 +727,7 @@
   async function pick() {
     if (!current) return;
     const ctx = current, id = ++run;
+    track("pick");
     chat.querySelectorAll("[data-again], .typing").forEach((b) => b.remove()); // 마지막 카드에만 남김
     const typing = bubble("고르는 중…", "bot", "typing");
     const stale = () => id !== run; // 그사이 다른 버튼을 눌렀으면 이 요청은 버린다
@@ -952,6 +957,7 @@
   }
   // preset: 게임 소개 페이지에서 ?items=짜장면,짬뽕 처럼 넘겨준 메뉴 후보 (없으면 담아 둔 후보)
   async function startGame(preset) {
+    track("game");
     trayBtn.disabled = true;
     try { await loadGame(); } catch { trayBtn.disabled = false; bubble("게임을 불러오지 못했어요. 잠시 후 다시 눌러주세요."); return; }
     trayBtn.disabled = false;
@@ -1008,12 +1014,13 @@
       </div>`;
     el.querySelector("[data-find]").onclick = (e) => { e.currentTarget.disabled = true; ask(name); };
     const shareBtn = el.querySelector("[data-share]");
-    shareBtn.onclick = () => shareText(shareBtn, `오늘 메뉴는 ${name}! 🎮 ${gameName} 게임으로 정했어요\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com`);
+    shareBtn.onclick = () => shareText(shareBtn, `오늘 메뉴는 ${name}! 🎮 ${gameName} 게임으로 정했어요\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com/?from=share`);
     el.querySelector("[data-replay]").onclick = startGame;
     chat.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
   async function shareText(btn, text) {
+    track("share");
     try {
       if (navigator.share) { await navigator.share({ title: "오땡뭐!", text }); return; }
       await navigator.clipboard.writeText(text);
@@ -1070,6 +1077,11 @@
   renderChips();
   initLocation();
   startRotator();
+  // 공유 글·투표 화면·안내 글에서 들어온 횟수 (?from=share|vote|guide|sns, guide-글이름·sns-채널도 앞 단어로 센다)
+  try {
+    const from = (new URLSearchParams(location.search).get("from") || "").split("-")[0]; // guide-dinner → guide
+    if (["share", "vote", "guide", "sns"].includes(from)) track(`from_${from}`);
+  } catch {}
   // 게임 소개 페이지에서 ?game=wheel&items=짜장면,짬뽕 처럼 들어오면 그 게임을 바로 연다 (game=vote는 마지막 게임으로 열기)
   try {
     const q = new URLSearchParams(location.search), g = q.get("game");

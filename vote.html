@@ -23,6 +23,10 @@
     <p id="v-sub" class="v-sub">불러오는 중…</p>
     <ol id="v-list" class="v-list"></ol>
     <p class="v-foot"><button id="v-share" type="button" hidden>이 투표 공유하기</button></p>
+    <div id="v-make" class="v-make" hidden>
+      <p><b>다음 점심은 우리 팀도 이렇게 정해볼까요?</b><br>후보만 적으면 투표 링크가 바로 생겨요. 가입은 필요 없어요.</p>
+      <a id="v-make-a" href="/?game=vote&amp;from=vote-make">우리 팀 투표 만들기</a>
+    </div>
     <p class="doc-back"><a href="/?from=vote">← 나도 메뉴 고르기</a></p>
   </main>
   <script>
@@ -57,6 +61,12 @@
         }).join("");
         document.querySelectorAll("[data-vote]").forEach((b) => (b.onclick = () => vote(Number(b.dataset.vote))));
         $("#v-share").hidden = false;
+        // 투표한 사람이 다음엔 직접 투표를 만들도록: 메뉴 투표면 같은 후보를 담아서 연다
+        if (voted != null) {
+          const items = d.places.every((p) => p.cat === "메뉴") ? `&items=${encodeURIComponent(d.places.map((p) => p.name).join(","))}` : "";
+          $("#v-make-a").href = `/?game=vote${items}&from=vote-make`;
+          $("#v-make").hidden = false;
+        }
       }
 
       async function load(opts) {
@@ -90,6 +100,7 @@
         try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); $("#v-share").textContent = "링크를 복사했어요"; } } catch {}
       };
 
+      $("#v-make-a").onclick = () => track("vote_make");
       track("vote_view");
       refresh();
       setInterval(refresh, 5000);

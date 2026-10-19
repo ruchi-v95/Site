@@ -8,6 +8,7 @@ const EVENTS = new Set([
   "poll",        // 투표 만들기
   "vote_view",   // 투표 링크 열기 (친구가 들어온 횟수)
   "vote",        // 투표하기
+  "vote_make",   // 투표한 사람이 "우리 팀 투표 만들기"를 누름
   "game",        // 게임 열기
   "from_share",  // 공유 글의 링크로 들어옴
   "from_vote",   // 투표 화면에서 들어옴

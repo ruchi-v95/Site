@@ -289,6 +289,10 @@ main.doc .doc-cta a { display: inline-block; padding: 12px 18px; border-radius: 
 .v-links { display: flex; gap: 14px; margin-top: 6px; font-size: 13px; }
 main.doc .v-links a { color: var(--muted); }
 .v-foot button { background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+.v-make { margin: 20px 0 0; padding: 16px; border: 1px solid var(--accent); border-radius: 14px; background: var(--card); }
+.v-make p { margin: 0 0 12px; line-height: 1.5; color: var(--muted); font-size: 14px; }
+.v-make p b { color: var(--fg); font-size: 15px; }
+main.doc .v-make a { display: block; text-align: center; padding: 12px; border-radius: 12px; background: var(--accent); color: var(--accent-fg); font-weight: 700; text-decoration: none; }
 
 /* 게임으로 정하기: 검색창 위 오른쪽 버튼 (걸어서/차로와 같은 줄) */
 .dock-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; column-gap: 8px; }

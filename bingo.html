@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>제철음식 빙고, 이번 시즌 제철 메뉴 하나씩 맛보기 | 오땡뭐!</title>
+  <meta name="description" content="가을·겨울·봄·여름 시즌마다 제철 메뉴 9칸 빙고를 채워보세요. 칸을 누르면 근처 가게를 찾아주고, 한 줄을 채우면 친구에게 공유할 수 있어요. 무료, 가입 없음." />
+  <link rel="canonical" href="https://odaengmwo.com/bingo.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="오땡뭐!" />
+  <meta property="og:url" content="https://odaengmwo.com/bingo.html" />
+  <meta property="og:title" content="제철음식 빙고, 이번 시즌 제철 메뉴 하나씩 맛보기" />
+  <meta property="og:description" content="가을·겨울·봄·여름 시즌마다 제철 메뉴 9칸 빙고를 채워보세요. 칸을 누르면 근처 가게를 찾아주고, 한 줄을 채우면 친구에게 공유할 수 있어요. 무료, 가입 없음." />
+  <meta property="og:image" content="https://odaengmwo.com/og.png" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"오땡뭐! 제철음식 빙고","url":"https://odaengmwo.com/bingo.html","applicationCategory":"LifestyleApplication","operatingSystem":"Web","inLanguage":"ko","description":"가을·겨울·봄·여름 시즌마다 제철 메뉴 9칸 빙고를 채워보세요. 칸을 누르면 근처 가게를 찾아주고, 한 줄을 채우면 친구에게 공유할 수 있어요. 무료, 가입 없음.","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="alternate" type="application/rss+xml" title="오땡뭐! 메뉴 고민 해결 글" href="/rss.xml" />
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7637538532720632" crossorigin="anonymous"></script>
+</head>
+<body>
+  <main class="doc bingo-page">
+    <p class="mark"><a href="/">오땡뭐!</a></p>
+    <h1 id="b-title">제철 빙고</h1>
+    <p id="b-lead" class="b-lead">이번 시즌 제철 메뉴를 하나씩 맛보세요. 칸을 누르면 근처 가게를 찾아줘요.</p>
+    <ol id="b-grid" class="b-grid" aria-label="제철 빙고판"></ol>
+    <p class="b-prog"><span id="b-count"></span><span id="b-left"></span></p>
+    <p class="b-share"><button id="b-share" type="button">내 빙고 공유하기</button></p>
+    <div id="b-sheet" class="b-sheet" hidden>
+      <p class="b-sheet-name" id="b-sheet-name"></p>
+      <p class="b-sheet-sub" id="b-sheet-sub"></p>
+      <a id="b-find" class="b-btn primary" href="/">근처 가게 하나 뽑기</a>
+      <button id="b-stamp" class="b-btn" type="button">먹었어요, 도장 찍기</button>
+    </div>
+    <p class="b-note">기록은 이 휴대폰(브라우저)에만 저장돼요. 시즌이 바뀌면 새 빙고판이 열려요.</p>
+    <p class="doc-back"><a href="/guide/seasonal-food.html">월별 제철음식 보기</a> · <a href="/">오땡뭐! 첫 화면</a></p>
+  </main>
+  <script>
+    (() => {
+      // 시즌마다 9칸: 동네 가게에서 찾을 수 있는 제철 메뉴 (guide/seasonal-food.html과 맞춤)
+      const SEASONS = {
+        spring: { name: "봄", months: [3, 4, 5], foods: [["🐙", "주꾸미볶음"], ["🐟", "도다리쑥국"], ["🍜", "바지락칼국수"], ["🍚", "멍게비빔밥"], ["🥬", "봄동비빔밥"], ["🥓", "미나리삼겹살"], ["🍲", "냉이된장찌개"], ["🐟", "병어조림"], ["🍣", "회덮밥"]] },
+        summer: { name: "여름", months: [6, 7, 8], foods: [["🐔", "삼계탕"], ["🐍", "장어구이"], ["🥣", "콩국수"], ["🐟", "물회"], ["🍜", "냉면"], ["🐟", "민어회"], ["🍲", "전복죽"], ["🍜", "밀면"], ["🍜", "막국수"]] },
+        autumn: { name: "가을", months: [9, 10, 11], foods: [["🦐", "대하구이"], ["🐟", "전어구이"], ["🦀", "꽃게탕"], ["🦀", "간장게장"], ["🍲", "추어탕"], ["🐟", "고등어구이"], ["🍄", "버섯전골"], ["🦪", "굴국밥"], ["🐟", "방어회"]] },
+        winter: { name: "겨울", months: [12, 1, 2], foods: [["🐟", "방어회"], ["🦪", "굴국밥"], ["🐟", "과메기"], ["🦀", "대게"], ["🍚", "꼬막비빔밥"], ["🍲", "매생이국"], ["🍲", "대구탕"], ["🥬", "굴보쌈"], ["🥣", "팥죽"]] },
+      };
+      const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      const $ = (s) => document.querySelector(s);
+      const track = (e) => { try { navigator.sendBeacon && navigator.sendBeacon(`/api/stat?e=${e}`); } catch {} };
+
+      const now = new Date(), m = now.getMonth() + 1;
+      const key = Object.keys(SEASONS).find((k) => SEASONS[k].months.includes(m));
+      const season = SEASONS[key];
+      const year = m <= 2 ? now.getFullYear() - 1 : now.getFullYear(); // 겨울은 12월의 해로 묶는다
+      const STORE = `wmm.bingo.${year}-${key}`;
+      const load = () => { try { return new Set(JSON.parse(localStorage.getItem(STORE) || "[]")); } catch { return new Set(); } };
+      const save = (s) => { try { localStorage.setItem(STORE, JSON.stringify([...s])); } catch {} };
+      let done = load(), open = -1;
+
+      // 시즌 끝(마지막 달 말일)까지 남은 주
+      const lastMonth = season.months[2], endYear = lastMonth < m ? now.getFullYear() + 1 : now.getFullYear();
+      const end = new Date(endYear, lastMonth, 0);
+      const weeks = Math.max(0, Math.ceil((end - now) / (7 * 864e5)));
+
+      $("#b-title").innerHTML = `${season.name} 제철 빙고<span class="dot">!</span>`;
+      document.title = `${season.name} 제철 빙고 | 오땡뭐!`;
+      $("#b-left").textContent = weeks ? `남은 ${season.name} ${weeks}주` : `${season.name} 마지막 주`;
+
+      const lines = () => LINES.filter((l) => l.every((i) => done.has(i)));
+      function render() {
+        const full = new Set(lines().flat());
+        $("#b-grid").innerHTML = season.foods.map(([em, name], i) =>
+          `<li><button type="button" class="b-cell${done.has(i) ? " done" : ""}${full.has(i) ? " line" : ""}${open === i ? " open" : ""}" data-i="${i}" aria-pressed="${done.has(i)}">
+            <span class="b-em" aria-hidden="true">${em}</span><span class="b-name">${name}</span>${done.has(i) ? '<span class="b-stamp">먹음</span>' : ""}
+          </button></li>`).join("");
+        const n = lines().length;
+        $("#b-count").innerHTML = `${done.size}칸 맛봤어요${n ? ` · <b>${n}줄 빙고!</b>` : ""}`;
+        $("#b-share").classList.toggle("primary", n > 0);
+        document.querySelectorAll(".b-cell").forEach((b) => (b.onclick = () => select(Number(b.dataset.i))));
+      }
+      function select(i) {
+        open = i;
+        const [em, name] = season.foods[i];
+        $("#b-sheet").hidden = false;
+        $("#b-sheet-name").textContent = `${em} ${name}`;
+        $("#b-sheet-sub").textContent = done.has(i) ? "이번 시즌에 먹었어요." : "아직 안 먹었어요. 근처에서 찾아볼까요?";
+        $("#b-find").href = `/?pick=${encodeURIComponent(name)}&from=bingo`;
+        $("#b-stamp").textContent = done.has(i) ? "도장 지우기" : "먹었어요, 도장 찍기";
+        render();
+        $("#b-sheet").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      $("#b-find").onclick = () => track("bingo_find");
+      $("#b-stamp").onclick = () => {
+        const before = lines().length;
+        if (done.has(open)) done.delete(open); else { done.add(open); track("bingo_stamp"); }
+        save(done); select(open);
+        if (lines().length > before) $("#b-count").classList.add("pop");
+      };
+      $("#b-share").onclick = async () => {
+        const grid = [0, 3, 6].map((r) => [0, 1, 2].map((c) => (done.has(r + c) ? "🟧" : "⬜")).join("")).join("\n");
+        const n = lines().length;
+        const text = `${season.name} 제철 빙고 ${done.size}/9${n ? ` · ${n}줄 빙고!` : ""}\n${grid}\n\n나도 해보기 👉 https://odaengmwo.com/bingo.html?from=share`;
+        track("bingo_share");
+        try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); $("#b-share").textContent = "복사했어요. 단톡방에 붙여넣어 보내세요"; } }
+        catch (e) { if (!e || e.name !== "AbortError") $("#b-share").textContent = "공유하지 못했어요"; }
+      };
+      if (new URLSearchParams(location.search).get("from") === "share") track("from_share");
+      render();
+    })();
+  </script>
+</body>
+</html>

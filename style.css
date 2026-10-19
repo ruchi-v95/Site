@@ -322,3 +322,8 @@ main.doc .guide-list small { color: var(--muted); font-size: 13px; }
 .season.now { border-color: var(--accent); }
 .season.now h3::after { content: "이번 달"; margin-left: 8px; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); vertical-align: middle; }
 .season-menus a { display: inline-block; margin: 2px 8px 2px 0; }
+.msg.pre { white-space: pre-line; }
+.msg .season-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.season-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+main.doc .season-actions a { display: inline-block; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 600; text-decoration: none; }
+main.doc .season-actions a.on { background: var(--accent); color: var(--accent-fg); }

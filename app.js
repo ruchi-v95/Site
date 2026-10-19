@@ -1012,10 +1012,7 @@
   function loadGame() {
     if (window.OdGame) return Promise.resolve();
     if (gameLoad) return gameLoad;
-    // 글꼴은 기다리지 않고(없으면 기본 글꼴), 게임 화면 모양(css)과 코드(js)는 다 받은 뒤 연다
-    const font = document.createElement("link");
-    font.rel = "stylesheet"; font.href = "https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap";
-    document.head.appendChild(font);
+    // 게임 화면 모양(css)과 코드(js)는 다 받은 뒤 연다
     const get = (el) => new Promise((ok, fail) => { el.onload = ok; el.onerror = fail; document.head.appendChild(el); });
     const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/game.css" });
     const js = Object.assign(document.createElement("script"), { src: "/game.js" });

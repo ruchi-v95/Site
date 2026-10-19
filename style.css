@@ -221,6 +221,7 @@ main.talking .locbar { margin-top: 8px; }
 .pick .menus b { color: var(--accent-text); }
 .more-meta b { color: var(--accent-text); font-weight: 600; }
 .chip.chip-cheap { font-weight: 600; }
+.chip.chip-season { font-weight: 600; }
 .demo-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 
 /* 하단 링크 */
@@ -317,3 +318,7 @@ main.doc .v-make a { display: block; text-align: center; padding: 12px; border-r
 .chip.chip-any { font-weight: 600; }
 main.doc .guide-list li { margin-bottom: 10px; }
 main.doc .guide-list small { color: var(--muted); font-size: 13px; }
+.season { border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; margin: 12px 0; }
+.season.now { border-color: var(--accent); }
+.season.now h3::after { content: "이번 달"; margin-left: 8px; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); vertical-align: middle; }
+.season-menus a { display: inline-block; margin: 2px 8px 2px 0; }

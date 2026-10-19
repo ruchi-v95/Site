@@ -24,6 +24,23 @@
     추위: { chip: "🥶 추운 날", line: "날이 차요. 뜨끈한 거 어때요?", foods: ["국밥", "김치찌개", "감자탕", "순두부찌개", "칼국수", "마라탕", "샤브샤브"] },
     더위: { chip: "🥵 더운 날", line: "덥네요. 시원한 거 어때요?", foods: ["냉면", "막국수", "콩국수", "물회", "초밥", "샐러드", "밀면"] },
   };
+  // 이달의 제철: 달마다 제철 재료로 만든, 동네 가게에서 찾을 수 있는 메뉴 (guide/seasonal-food.html과 같은 목록)
+  const SEASON = [
+    { star: "굴·과메기·방어", foods: ["굴국밥", "과메기", "방어회", "대구탕", "꼬막비빔밥"] },
+    { star: "꼬막·굴·매생이", foods: ["꼬막비빔밥", "굴국밥", "매생이국", "대구탕", "굴보쌈"] },
+    { star: "주꾸미·도다리·바지락", foods: ["주꾸미볶음", "도다리쑥국", "바지락칼국수", "꼬막비빔밥"] },
+    { star: "주꾸미·멍게·바지락", foods: ["주꾸미볶음", "멍게비빔밥", "바지락칼국수", "도다리회"] },
+    { star: "멍게·바지락·병어", foods: ["멍게비빔밥", "바지락칼국수", "병어조림", "회덮밥"] },
+    { star: "전복·장어·콩국수", foods: ["전복죽", "장어구이", "콩국수", "물회", "냉면"] },
+    { star: "삼계탕·민어·장어", foods: ["삼계탕", "장어구이", "민어회", "콩국수", "물회"] },
+    { star: "장어·전복·물회", foods: ["장어구이", "물회", "전복죽", "콩국수", "삼계탕"] },
+    { star: "전어·대하·꽃게", foods: ["전어구이", "대하구이", "꽃게탕", "추어탕", "간장게장"] },
+    { star: "전어·대하·꽃게", foods: ["전어구이", "대하구이", "꽃게탕", "간장게장", "고등어구이"] },
+    { star: "굴·방어·과메기", foods: ["굴국밥", "방어회", "과메기", "꼬막비빔밥", "보쌈"] },
+    { star: "방어·굴·대게", foods: ["방어회", "굴국밥", "과메기", "대게", "꼬막비빔밥"] },
+  ];
+  const seasonNow = (d = new Date()) => ({ month: d.getMonth() + 1, ...SEASON[d.getMonth()] });
+  const iga = (w) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? "이" : "가"); // 받침 있으면 "이"
   const RECENT_KEY = "wmm.recent";
   const RECENT_MAX = 5;
   const MAX_PAGE = 3;
@@ -108,11 +125,15 @@
     const w = weather && WEATHER[weather];
     fillChips($("#chips-cat"), [ANY_CHIP, ...Object.keys(CATEGORIES)], (c) => c === ANY_CHIP ? ask(c, { situation: c }) : ask(c, { category: c }));
     $("#chips-cat").firstElementChild.classList.add("chip-any");
-    const sit = [...(w ? [w.chip] : []), situations[0], CHEAP_CHIP, ...situations.slice(1)];
+    const season = seasonNow(), seasonChip = `🐟 ${season.month}월 제철`;
+    const sit = [...(w ? [w.chip] : []), situations[0], seasonChip, CHEAP_CHIP, ...situations.slice(1)];
     fillChips($("#chips-sit"), sit, (c) =>
-      w && c === w.chip ? ask(c, { foods: w.foods }) : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
+      w && c === w.chip ? ask(c, { foods: w.foods })
+      : c === seasonChip ? ask(c, { foods: season.foods, line: `${season.month}월엔 ${season.star}${iga(season.star)} 제철이에요. 근처에서 찾아볼게요.` })
+      : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
     if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
     [...$("#chips-sit").children].find((b) => b.textContent === CHEAP_CHIP)?.classList.add("chip-cheap");
+    [...$("#chips-sit").children].find((b) => b.textContent === seasonChip)?.classList.add("chip-season");
   }
 
   // 위치를 알면 그 동네 날씨를 한 번 가져온다. 키가 없거나 실패하면 조용히 넘어간다.
@@ -695,6 +716,7 @@
     if (foods.length) return { mode: "food", queries: foods };
     const sit = Object.keys(SITUATIONS).find((k) => text.includes(k));
     if (sit) return { mode: "food", queries: SITUATIONS[sit] };
+    if (/제철/.test(text)) return { mode: "food", queries: seasonNow().foods, fallback: SITUATIONS[timeSlot()] };
     if (/착한\s?가격|가성비|싼\s?곳|저렴|만원/.test(text)) return { mode: "cheap", queries: ["착한가격"] };
     if (/뜨끈|따뜻|해장|비\s?오/.test(text)) return { mode: "food", queries: SITUATIONS.국물 };
     if (/가볍|다이어트/.test(text)) return { mode: "food", queries: SITUATIONS.가볍게 };
@@ -708,14 +730,15 @@
   function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
   // ---------- 추천 ----------
-  async function ask(text, { category, situation, foods, cheap } = {}) {
+  async function ask(text, { category, situation, foods, cheap, line } = {}) {
     text = text.trim();
     if (!text) return;
     app.classList.add("talking");
     bubble(text, "me");
+    if (line) bubble(line);
     let plan;
     if (cheap) plan = { mode: "cheap", queries: ["착한가격"] };
-    else if (foods) plan = { mode: "food", queries: foods };
+    else if (foods) plan = { mode: "food", queries: foods, fallback: line ? SITUATIONS[timeSlot()] : undefined };
     else if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
     else if (situation === "아무거나") plan = { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
     else if (situation) plan = { mode: "food", queries: SITUATIONS[situation] };
@@ -1099,7 +1122,7 @@
   try {
     const want = (new URLSearchParams(location.search).get("pick") || "").trim().slice(0, 20);
     if (want) {
-      const chip = [...document.querySelectorAll(".chip")].find((b) => b.textContent === want || b.textContent.replace(/^\S+\s/, "") === want);
+      const chip = [...document.querySelectorAll(".chip")].find((b) => b.textContent === want || b.textContent.replace(/^\S+\s/, "") === want || (want === "제철" && b.classList.contains("chip-season")));
       setTimeout(() => (chip ? chip.click() : ask(want)), 300);
     }
   } catch {}

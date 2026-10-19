@@ -310,6 +310,8 @@ main.doc .v-links a { color: var(--muted); }
 .b-sheet-name { font-weight: 800; font-size: 17px; }
 .b-sheet-sub { color: var(--muted); font-size: 14px; }
 .b-note { color: var(--muted); font-size: 13px; }
+.go { display: block; width: 100%; margin: 10px 0 8px; padding: 15px; border: 0; border-radius: 16px; background: var(--accent); color: var(--accent-fg); font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+main.talking .go { display: none; }
 .msg a.retry { text-decoration: none; width: fit-content; color: inherit; }
 .pick .actions .bingo-stamp { border-style: dashed; }
 .pick .actions .bingo-stamp.on { border-style: solid; border-color: var(--accent); color: var(--accent-text); }

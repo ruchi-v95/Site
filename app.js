@@ -127,18 +127,22 @@
     const slot = timeSlot();
     const situations = [slot, ...SITUATION_CHIPS.filter((c) => c !== slot)];
     const w = weather && WEATHER[weather];
-    fillChips($("#chips-cat"), [ANY_CHIP, ...Object.keys(CATEGORIES)], (c) => c === ANY_CHIP ? ask(c, { situation: c }) : ask(c, { category: c }));
-    $("#chips-cat").firstElementChild.classList.add("chip-any");
+    // 버튼은 한 줄만: 상황(날씨·제철·시간대·착한가격…) 뒤에 음식 종류. "아무거나"는 큰 "지금 하나 뽑기" 버튼이 맡는다
+    $("#chips-cat").hidden = true;
     const season = seasonNow(), left = seasonDaysLeft();
     const seasonChip = `🐟 ${season.month}월 제철${left <= 7 ? ` · D-${left}` : ""}`;
-    const sit = [...(w ? [w.chip] : []), situations[0], seasonChip, CHEAP_CHIP, ...situations.slice(1)];
+    const cats = Object.keys(CATEGORIES);
+    const sit = [...(w ? [w.chip] : []), situations[0], seasonChip, CHEAP_CHIP, ...situations.slice(1), ...cats];
     fillChips($("#chips-sit"), sit, (c) =>
+      cats.includes(c) ? ask(c, { category: c }) :
       w && c === w.chip ? ask(c, { foods: w.foods })
-      : c === seasonChip ? ask(c, { foods: season.foods, season: true, line: `${season.month}월엔 ${season.star}${iga(season.star)} 제철이에요. 근처에서 찾아볼게요.` })
+      : c === seasonChip ? ask(c, { foods: season.foods, season: true, line: `${season.month}월엔 ${season.star}${iga(season.star)} 제철이에요${left ? ` (${left}일 남음)` : ""}. 근처에서 찾아볼게요.` })
       : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
     if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
     [...$("#chips-sit").children].find((b) => b.textContent === CHEAP_CHIP)?.classList.add("chip-cheap");
     [...$("#chips-sit").children].find((b) => b.textContent === seasonChip)?.classList.add("chip-season");
+    const go = $("#go");
+    if (go) go.onclick = () => ask("지금 하나 뽑아줘", { situation: slot });
   }
 
   // 위치를 알면 그 동네 날씨를 한 번 가져온다. 키가 없거나 실패하면 조용히 넘어간다.
@@ -218,23 +222,13 @@
     return el;
   }
 
-  // 제철 안내 말풍선 아래: 남은 날, 다음 달 미리보기, 제철 메뉴로 팀 투표
+  // 제철 안내 말풍선 아래: 제철 빙고로 가는 버튼 하나만 (팀 투표는 제철음식 글에서)
   function seasonExtras(el) {
-    const now = seasonNow(), next = seasonNext(), left = seasonDaysLeft();
-    const note = document.createElement("p");
-    note.className = "season-note";
-    note.textContent = `${left ? `이번 달 제철이 ${left}일 남았어요.` : "오늘이 이번 달 제철 마지막 날이에요."} ${next.month}월엔 ${next.star}${iga(next.star)} 나와요.`;
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "retry";
-    b.textContent = `👥 ${now.month}월 제철 메뉴로 팀 투표 만들기`;
-    b.onclick = () => { b.dataset.made = "1"; startPoll(b, `${now.month}월 제철`, seasonMenus(now.foods)); };
-    el.append(note, b);
-    if (window.OdBingo) {
-      const { season } = OdBingo.current(), go = document.createElement("a");
-      go.className = "retry"; go.href = "/bingo.html?from=home";
-      go.textContent = `🎯 ${season.name} 제철 빙고 채우기`;
-      el.appendChild(go);
-    }
+    if (!window.OdBingo) return;
+    const { season } = OdBingo.current(), go = document.createElement("a");
+    go.className = "retry"; go.href = "/bingo.html?from=home";
+    go.textContent = `🎯 ${season.name} 제철 빙고 채우기`;
+    el.appendChild(go);
   }
 
   // 제철 빙고: 이번 시즌 빙고판에 있는 메뉴면 추천 카드에서 바로 도장을 찍는다 (bingo-data.js)
@@ -302,8 +296,7 @@
           <button type="button" data-again>다시 뽑기</button>
           <button type="button" class="share" data-share>공유하기</button>
         </div>
-        <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? TRAY_ON : TRAY_OFF}</button>
-        ${p.demo ? "" : `<button type="button" class="wide" data-tray-poll hidden></button>`}
+        <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? trayOn() : TRAY_OFF}</button>
         ${bingoIndex(query) >= 0 ? `<button type="button" class="wide bingo-stamp" data-bingo></button>` : ""}
         <details class="extra wide">
           <summary>다른 선택지</summary>
@@ -322,7 +315,8 @@
     const shareBtn = el.querySelector("[data-share]");
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
     const trayBtn = el.querySelector("[data-tray]");
-    trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, TRAY_ON); };
+    // 담은 뒤에는 같은 버튼이 게임·투표 화면으로 이어진다 (투표는 게임 화면의 "친구 투표로")
+    trayBtn.onclick = () => { if (inTray(p)) return startGame(); if (addTray(p)) markAdded(trayBtn, trayOn()); };
     const bingoBtn = el.querySelector("[data-bingo]");
     if (bingoBtn) paintBingo(bingoBtn, query);
     chat.appendChild(el);
@@ -966,7 +960,8 @@
   // ---------- 게임으로 정하기 ----------
   // 검색창 위 버튼으로 바로 게임 화면을 연다. 후보는 게임 화면에서 메뉴를 넣거나, 카드·더보기에서 가게를 담는다. 이 기기에만 저장한다.
   const trayBtn = $("#tray");
-  const POLL_MAX = 8, TRAY_ON = "✓ 후보에 담았어요 (게임·투표)", TRAY_OFF = "➕ 게임·투표 후보에 담기";
+  const POLL_MAX = 8, TRAY_OFF = "➕ 게임·투표 후보에 담기";
+  const trayOn = () => `✓ 후보 ${tray.length}개 담음 · 게임·투표하러 가기`;
   const inTray = (p) => tray.some((q) => (p.id && q.id === p.id) || q.place_name === p.place_name);
   function saveTray() { try { localStorage.setItem(TRAY_KEY, JSON.stringify(tray)); } catch {} }
   function slim(p) {

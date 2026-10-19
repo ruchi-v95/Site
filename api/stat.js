@@ -12,6 +12,7 @@ const EVENTS = new Set([
   "bingo_stamp", // 제철 빙고 도장 찍기
   "bingo_find",  // 제철 빙고 칸에서 "근처 가게 하나 뽑기"
   "bingo_share", // 제철 빙고 공유하기
+  "theme_light", "theme_dark", "theme_auto", // 화면 모드 버튼
   "game",        // 게임 열기
   "from_share",  // 공유 글의 링크로 들어옴
   "from_vote",   // 투표 화면에서 들어옴

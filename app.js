@@ -229,6 +229,30 @@
     b.textContent = `👥 ${now.month}월 제철 메뉴로 팀 투표 만들기`;
     b.onclick = () => { b.dataset.made = "1"; startPoll(b, `${now.month}월 제철`, seasonMenus(now.foods)); };
     el.append(note, b);
+    if (window.OdBingo) {
+      const { season } = OdBingo.current(), go = document.createElement("a");
+      go.className = "retry"; go.href = "/bingo.html?from=home";
+      go.textContent = `🎯 ${season.name} 제철 빙고 채우기`;
+      el.appendChild(go);
+    }
+  }
+
+  // 제철 빙고: 이번 시즌 빙고판에 있는 메뉴면 추천 카드에서 바로 도장을 찍는다 (bingo-data.js)
+  function bingoIndex(food) {
+    if (!window.OdBingo || !food) return -1;
+    return OdBingo.current().season.foods.findIndex(([, name]) => name === food);
+  }
+  function paintBingo(btn, food) {
+    const { season, store } = OdBingo.current(), i = bingoIndex(food), done = OdBingo.load(store);
+    btn.classList.toggle("on", done.has(i));
+    btn.textContent = done.has(i)
+      ? `✓ 빙고 도장 찍었어요 (${done.size}/9) · 빙고판 보기`
+      : `🎯 먹었어요, ${season.name} 제철 빙고에 도장 찍기`;
+    btn.onclick = () => {
+      if (done.has(i)) { location.href = "/bingo.html?from=home"; return; } // 도장 지우기는 빙고판에서
+      done.add(i); OdBingo.save(store, done); track("bingo_stamp");
+      paintBingo(btn, food);
+    };
   }
 
   function esc(s) {
@@ -280,6 +304,7 @@
         </div>
         <button type="button" class="tray-add wide${inTray(p) ? " on" : ""}" data-tray>${inTray(p) ? TRAY_ON : TRAY_OFF}</button>
         ${p.demo ? "" : `<button type="button" class="wide" data-tray-poll hidden></button>`}
+        ${bingoIndex(query) >= 0 ? `<button type="button" class="wide bingo-stamp" data-bingo></button>` : ""}
         <details class="extra wide">
           <summary>다른 선택지</summary>
           <div class="extra-grid">
@@ -298,6 +323,8 @@
     shareBtn.onclick = () => sharePick(shareBtn, label, p);
     const trayBtn = el.querySelector("[data-tray]");
     trayBtn.onclick = () => { if (addTray(p)) markAdded(trayBtn, TRAY_ON); };
+    const bingoBtn = el.querySelector("[data-bingo]");
+    if (bingoBtn) paintBingo(bingoBtn, query);
     chat.appendChild(el);
     paintPollBtns();
     el.scrollIntoView({ behavior: "smooth", block: "end" });

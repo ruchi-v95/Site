@@ -42,7 +42,6 @@
   const seasonNow = (d = new Date()) => ({ month: d.getMonth() + 1, ...SEASON[d.getMonth()] });
   // 이번 달 제철이 며칠 남았는지 (말일 = 0)
   const seasonDaysLeft = (d = new Date()) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate();
-  const seasonNext = (d = new Date()) => ({ month: ((d.getMonth() + 1) % 12) + 1, ...SEASON[(d.getMonth() + 1) % 12] });
   const seasonMenus = (foods) => foods.map((name) => ({ id: `menu-${name}`, place_name: name, menu: true }));
   const iga = (w) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? "이" : "가"); // 받침 있으면 "이"
   const RECENT_KEY = "wmm.recent";
@@ -320,7 +319,6 @@
     const bingoBtn = el.querySelector("[data-bingo]");
     if (bingoBtn) paintBingo(bingoBtn, query);
     chat.appendChild(el);
-    paintPollBtns();
     el.scrollIntoView({ behavior: "smooth", block: "end" });
   }
 
@@ -976,16 +974,6 @@
     return true;
   }
   function markAdded(btn, text) { btn.textContent = text; btn.classList.add("on"); }
-  // 친구랑 투표: 사용자가 직접 담은 후보(가게·메뉴)로만 만든다. 2개 이상 담으면 카드에 버튼이 나타난다.
-  function paintPollBtns() {
-    document.querySelectorAll("[data-tray-poll]").forEach((b) => {
-      if (b.dataset.made) return;
-      b.hidden = false;
-      b.disabled = tray.length < 2;
-      b.textContent = tray.length < 2 ? "👥 후보를 2개 담으면 친구랑 투표할 수 있어요" : `👥 담은 후보 ${Math.min(tray.length, POLL_MAX)}개로 친구랑 투표하기`;
-      b.onclick = () => { b.dataset.made = "1"; startPoll(b, "", tray.slice(0, POLL_MAX)); };
-    });
-  }
   function pollFrom(list) {
     app.classList.add("talking");
     const el = bubble(`담은 후보 ${Math.min(list.length, POLL_MAX)}개로 투표를 만들어요.`);
@@ -999,7 +987,6 @@
     trayBtn.innerHTML = `<span aria-hidden="true">🎮</span> 게임으로 정하기${tray.length ? `<span class="tray-n">${tray.length}</span>` : ""}`;
     trayBtn.setAttribute("aria-label", tray.length ? `게임으로 정하기 (후보 ${tray.length}개 담김)` : "게임으로 정하기");
     if (bump) { trayBtn.classList.remove("bump"); void trayBtn.offsetWidth; trayBtn.classList.add("bump"); }
-    paintPollBtns();
   }
   trayBtn && trayBtn.addEventListener("click", startGame);
 

@@ -40,6 +40,10 @@
     { star: "방어·굴·대게", foods: ["방어회", "굴국밥", "과메기", "대게", "꼬막비빔밥"] },
   ];
   const seasonNow = (d = new Date()) => ({ month: d.getMonth() + 1, ...SEASON[d.getMonth()] });
+  // 이번 달 제철이 며칠 남았는지 (말일 = 0)
+  const seasonDaysLeft = (d = new Date()) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate();
+  const seasonNext = (d = new Date()) => ({ month: ((d.getMonth() + 1) % 12) + 1, ...SEASON[(d.getMonth() + 1) % 12] });
+  const seasonMenus = (foods) => foods.map((name) => ({ id: `menu-${name}`, place_name: name, menu: true }));
   const iga = (w) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? "이" : "가"); // 받침 있으면 "이"
   const RECENT_KEY = "wmm.recent";
   const RECENT_MAX = 5;
@@ -125,11 +129,12 @@
     const w = weather && WEATHER[weather];
     fillChips($("#chips-cat"), [ANY_CHIP, ...Object.keys(CATEGORIES)], (c) => c === ANY_CHIP ? ask(c, { situation: c }) : ask(c, { category: c }));
     $("#chips-cat").firstElementChild.classList.add("chip-any");
-    const season = seasonNow(), seasonChip = `🐟 ${season.month}월 제철`;
+    const season = seasonNow(), left = seasonDaysLeft();
+    const seasonChip = `🐟 ${season.month}월 제철${left <= 7 ? ` · D-${left}` : ""}`;
     const sit = [...(w ? [w.chip] : []), situations[0], seasonChip, CHEAP_CHIP, ...situations.slice(1)];
     fillChips($("#chips-sit"), sit, (c) =>
       w && c === w.chip ? ask(c, { foods: w.foods })
-      : c === seasonChip ? ask(c, { foods: season.foods, line: `${season.month}월엔 ${season.star}${iga(season.star)} 제철이에요. 근처에서 찾아볼게요.` })
+      : c === seasonChip ? ask(c, { foods: season.foods, season: true, line: `${season.month}월엔 ${season.star}${iga(season.star)} 제철이에요. 근처에서 찾아볼게요.` })
       : c === CHEAP_CHIP ? ask(c, { cheap: true }) : ask(c, { situation: c }));
     if (w) $("#chips-sit").firstElementChild.classList.add("chip-weather");
     [...$("#chips-sit").children].find((b) => b.textContent === CHEAP_CHIP)?.classList.add("chip-cheap");
@@ -213,6 +218,19 @@
     return el;
   }
 
+  // 제철 안내 말풍선 아래: 남은 날, 다음 달 미리보기, 제철 메뉴로 팀 투표
+  function seasonExtras(el) {
+    const now = seasonNow(), next = seasonNext(), left = seasonDaysLeft();
+    const note = document.createElement("p");
+    note.className = "season-note";
+    note.textContent = `${left ? `이번 달 제철이 ${left}일 남았어요.` : "오늘이 이번 달 제철 마지막 날이에요."} ${next.month}월엔 ${next.star}${iga(next.star)} 나와요.`;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "retry";
+    b.textContent = `👥 ${now.month}월 제철 메뉴로 팀 투표 만들기`;
+    b.onclick = () => { b.dataset.made = "1"; startPoll(b, `${now.month}월 제철`, seasonMenus(now.foods)); };
+    el.append(note, b);
+  }
+
   function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
@@ -248,7 +266,7 @@
     const route = routeUrl(p);
     const moreWord = p.cheap ? "착한가격" : cat || query;
     el.innerHTML = `
-      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}${p.cheap ? '<span class="cheap-tag">착한가격업소</span>' : ""}${p.hot ? '<span class="cheap-tag hot-tag">🔥 리뷰 많은 집</span>' : ""}</p>
+      <p class="food">오늘은 ${esc(label)}${p.demo ? '<span class="demo-tag">예시</span>' : ""}${p.cheap ? '<span class="cheap-tag">착한가격업소</span>' : ""}${p.hot ? '<span class="cheap-tag hot-tag">🔥 리뷰 많은 집</span>' : ""}${current && current.season && seasonNow().foods.includes(query) ? `<span class="cheap-tag">⏳ 제철 ${seasonDaysLeft() ? `${seasonDaysLeft()}일 남음` : "오늘까지"}</span>` : ""}</p>
       <h2>${esc(p.place_name)}</h2>
       ${p.menus && p.menus.length ? `<p class="menus">${p.menus.map(([m, won]) => `${esc(m)} <b>${Number(won).toLocaleString()}원</b>`).join(" · ")}</p>` : ""}
       ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
@@ -302,7 +320,7 @@
       const { id } = await r.json();
       const link = `${location.origin}/vote.html?id=${id}`;
       track("poll");
-      const ask = places.every((q) => q.menu) ? "오늘 뭐 먹을까?" : label ? `오늘 ${label} 어디서 먹을까?` : "오늘 어디서 먹을까?";
+      const ask = places.every((q) => q.menu) ? `오늘 뭐 먹을까?${label ? ` (${label})` : ""}` : label ? `오늘 ${label} 어디서 먹을까?` : "오늘 어디서 먹을까?";
       const text = `${ask} 투표해줘 🗳️\n${places.map((q) => "· " + q.place_name).join("\n")}\n${link}`;
       btn.disabled = false;
       btn.textContent = "투표 결과 보기";
@@ -716,7 +734,7 @@
     if (foods.length) return { mode: "food", queries: foods };
     const sit = Object.keys(SITUATIONS).find((k) => text.includes(k));
     if (sit) return { mode: "food", queries: SITUATIONS[sit] };
-    if (/제철/.test(text)) return { mode: "food", queries: seasonNow().foods, fallback: SITUATIONS[timeSlot()] };
+    if (/제철/.test(text)) return { mode: "food", queries: seasonNow().foods, fallback: SITUATIONS[timeSlot()], season: true };
     if (/착한\s?가격|가성비|싼\s?곳|저렴|만원/.test(text)) return { mode: "cheap", queries: ["착한가격"] };
     if (/뜨끈|따뜻|해장|비\s?오/.test(text)) return { mode: "food", queries: SITUATIONS.국물 };
     if (/가볍|다이어트/.test(text)) return { mode: "food", queries: SITUATIONS.가볍게 };
@@ -730,15 +748,18 @@
   function shuffle(a) { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 
   // ---------- 추천 ----------
-  async function ask(text, { category, situation, foods, cheap, line } = {}) {
+  async function ask(text, { category, situation, foods, cheap, line, season } = {}) {
     text = text.trim();
     if (!text) return;
     app.classList.add("talking");
     bubble(text, "me");
-    if (line) bubble(line);
+    if (line) {
+      const el = bubble(line);
+      if (season) seasonExtras(el);
+    }
     let plan;
     if (cheap) plan = { mode: "cheap", queries: ["착한가격"] };
-    else if (foods) plan = { mode: "food", queries: foods, fallback: line ? SITUATIONS[timeSlot()] : undefined };
+    else if (foods) plan = { mode: "food", queries: foods, fallback: line ? SITUATIONS[timeSlot()] : undefined, season };
     else if (category) plan = { mode: "category", queries: [CATEGORIES[category]] };
     else if (situation === "아무거나") plan = { mode: "category", queries: shuffle(Object.values(CATEGORIES)) };
     else if (situation) plan = { mode: "food", queries: SITUATIONS[situation] };
@@ -1116,6 +1137,23 @@
       const names = (q.get("items") || "").split(",").map((t) => t.trim().slice(0, 20)).filter(Boolean);
       const preset = [...new Set(names)].slice(0, POLL_MAX).map((name) => ({ id: `menu-${name}`, place_name: name, menu: true, typed: true }));
       setTimeout(() => startGame(preset.length ? preset : undefined), 300);
+    }
+  } catch {}
+  // 제철 글 등에서 ?vote=전어구이,대하구이&title=10월 제철 처럼 들어오면 그 후보로 투표를 만들 준비를 한다 (공유는 버튼을 눌러야 열린다)
+  try {
+    const q = new URLSearchParams(location.search), raw = q.get("vote");
+    if (raw) {
+      const names = [...new Set(raw.split(",").map((t) => t.trim().slice(0, 20)).filter(Boolean))].slice(0, POLL_MAX);
+      const title = (q.get("title") || "").trim().slice(0, 20);
+      if (names.length >= 2) setTimeout(() => {
+        app.classList.add("talking");
+        const el = bubble(`${title ? `${title} 메뉴` : "이 후보"}로 팀 투표를 만들어요.\n${names.map((n) => "· " + n).join("\n")}`, "bot", "pre");
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "retry";
+        b.textContent = "👥 투표 링크 만들어 보내기";
+        b.onclick = () => { b.dataset.made = "1"; startPoll(b, title, seasonMenus(names)); };
+        el.appendChild(b);
+      }, 300);
     }
   } catch {}
   // 안내 글 등에서 ?pick=야식 처럼 들어오면 그 버튼을 바로 눌러준다

@@ -231,6 +231,13 @@
   }
 
   // 제철 빙고: 이번 시즌 빙고판에 있는 메뉴면 추천 카드에서 바로 도장을 찍는다 (bingo-data.js)
+  // 굴·방어·꽃게 메뉴를 뽑았을 때 카드에서 재료별 제철 글로 이어준다
+  const ING_GUIDE = [
+    ["oyster", "🦪 굴", ["굴국밥", "굴보쌈", "굴전", "굴짬뽕", "생굴", "굴칼국수", "굴밥"]],
+    ["yellowtail", "🐟 방어", ["방어회", "대방어", "방어초밥", "방어구이"]],
+    ["crab", "🦀 꽃게", ["꽃게탕", "간장게장", "양념게장", "꽃게찜"]],
+  ];
+  const ingGuide = (food) => ING_GUIDE.find(([, , menus]) => menus.includes(food));
   function bingoIndex(food) {
     if (!window.OdBingo || !food) return -1;
     return OdBingo.current().season.foods.findIndex(([, name]) => name === food);
@@ -288,6 +295,7 @@
       ${p.menus && p.menus.length ? `<p class="menus">${p.menus.map(([m, won]) => `${esc(m)} <b>${Number(won).toLocaleString()}원</b>`).join(" · ")}</p>` : ""}
       ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
       <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
+      ${ingGuide(query) ? `<p class="meta"><a class="ing-link" data-ing href="/guide/${ingGuide(query)[0]}.html?from=card">${ingGuide(query)[1]} 제철·고르는 법 보기</a></p>` : ""}
       ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
       <div class="actions">
         <a class="primary wide" href="${esc(route)}" target="_blank" rel="noopener">길찾기</a>
@@ -316,6 +324,8 @@
     const trayBtn = el.querySelector("[data-tray]");
     // 담은 뒤에는 같은 버튼이 게임·투표 화면으로 이어진다 (투표는 게임 화면의 "친구 투표로")
     trayBtn.onclick = () => { if (inTray(p)) return startGame(); if (addTray(p)) markAdded(trayBtn, trayOn()); };
+    const ingLink = el.querySelector("[data-ing]");
+    if (ingLink) ingLink.addEventListener("click", () => track("card_guide"));
     const bingoBtn = el.querySelector("[data-bingo]");
     if (bingoBtn) paintBingo(bingoBtn, query);
     chat.appendChild(el);

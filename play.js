@@ -193,6 +193,7 @@
       b.type = "button"; b.className = "chip" + (rainy && name === "🏠 실내" ? " chip-weather" : "");
       b.textContent = name;
       b.onclick = () => start(name);
+      if (cur && cur.chip === name) b.classList.add("on");
       box.appendChild(b);
     }
   }
@@ -216,6 +217,8 @@
     let queries = CHIPS[chip];
     if (chip === "🎲 아무거나" && rainy) queries = INDOOR; // 비 오는 날 '아무거나'는 실내에서
     cur = { chip, queries, shown: new Set(), pool: new Map() };
+    $("main").classList.add("talking");
+    document.querySelectorAll("#p-chips .chip").forEach((b) => b.classList.toggle("on", b.textContent === chip));
     pick();
   }
 
@@ -223,7 +226,7 @@
   async function pick() {
     const out = $("#p-out");
     out.innerHTML = `<p class="p-wait">고르는 중…</p>`;
-    out.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    out.scrollIntoView({ behavior: "smooth", block: "start" });
     if (!loc) await within(initLocPromise, 6000);
     if (!loc) setLoc(FALLBACK, "위치를 몰라 강남역", { help: true });
     try {
@@ -251,6 +254,7 @@
       picks.sort((x, y) => (Number(x.p.distance) || 1e9) - (Number(y.p.distance) || 1e9));
       await spin(out, qs.flatMap((q) => cur.pool.get(q).map((x) => x.place_name)));
       render(picks);
+      out.scrollIntoView({ behavior: "smooth", block: "start" });
       track("play_pick");
     } catch {
       out.innerHTML = `<p class="p-wait">지금 장소 정보를 불러오지 못했어요. 잠시 후 다시 눌러주세요.</p>`;

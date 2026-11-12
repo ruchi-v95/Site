@@ -30,7 +30,7 @@
       <a href="/fortune.html" class="tab">🔮 오늘의 운세</a>
     </nav>
     <p class="mark"><a href="/">오땡뭐!</a></p>
-    <h1>오늘 뭐하지<span class="dot">?</span></h1>
+    <h1 class="p-h1">오늘 뭐하지<span class="dot">?</span></h1>
     <p class="f-lead" id="p-lead">버튼 하나 누르면 내 주변 놀거리를 골라드려요.</p>
 
     <div class="p-loc" id="p-loc">
@@ -45,13 +45,15 @@
       </form>
     </div>
 
-    <div class="mode p-mode" role="radiogroup" aria-label="거리">
-      <button type="button" role="radio" data-r="2000" aria-checked="true" class="on">🚶 가까이 2km</button>
-      <button type="button" role="radio" data-r="5000" aria-checked="false">🚗 멀리 5km</button>
-    </div>
-    <div class="p-chips" id="p-chips" aria-label="놀거리 종류"></div>
-
     <section id="p-out" aria-live="polite"></section>
+
+    <div class="p-dock">
+      <div class="mode p-mode" role="radiogroup" aria-label="거리">
+        <button type="button" role="radio" data-r="2000" aria-checked="true" class="on">🚶 가까이 2km</button>
+        <button type="button" role="radio" data-r="5000" aria-checked="false">🚗 멀리 5km</button>
+      </div>
+      <div class="p-chips" id="p-chips" aria-label="놀거리 종류"></div>
+    </div>
 
     <p class="b-note">장소는 카카오맵 정보예요. 영업시간이나 예약 여부는 '상세 보기'에서 꼭 확인하세요.</p>
   </main>

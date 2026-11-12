@@ -443,3 +443,17 @@ main.doc .p-pick h2 { margin: 2px 0 6px; }
 .p-list .pick { padding: 14px 16px; }
 .p-list .pick .actions a { padding: 8px 10px; font-size: 14px; }
 .p-list .pick .actions .primary { background: var(--bg); color: var(--fg); border-color: var(--line); }
+
+/* 오늘 뭐하지: 뽑기 시작하면 '뭐 먹지'처럼 버튼은 아래에 붙고 결과는 위에 */
+main.play-page.talking { padding-top: 16px; }
+main.play-page.talking .mark, main.play-page.talking #p-lead { display: none; }
+main.play-page.talking .p-h1 { font-size: 18px; margin: 4px 0 8px; }
+main.play-page.talking .p-loc { margin: 8px 0 12px; padding: 10px 12px; }
+main.play-page.talking #p-out { scroll-margin-top: 12px; }
+main.play-page.talking .p-dock { position: sticky; bottom: 0; z-index: 5; background: var(--bg); margin-top: 16px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+main.play-page.talking .p-dock .p-mode { margin: 0 0 8px; }
+main.play-page.talking .p-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+main.play-page.talking .p-chips::-webkit-scrollbar { display: none; }
+main.play-page.talking .p-chips .chip { flex: none; }
+.p-chips .chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+@media (min-width: 700px) { main.play-page.talking .p-chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; } }

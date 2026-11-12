@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>오늘의 운세 무료, 생일로 보는 오늘 운세와 행운의 아이템 | 오땡뭐!</title>
-  <meta name="description" content="생일만 넣으면 오늘의 운세를 무료로 볼 수 있어요. 총운·금전운·애정운·일운·건강운과 행운의 아이템, 행운의 색·숫자·방향까지. 가입 없음." />
+  <meta name="description" content="생일만 넣으면 오늘의 운세를 무료로 볼 수 있어요. 총운과 금전·애정·일·건강 분야별 별점, 오전·오후·저녁 흐름, 조심할 점, 행운의 아이템, 행운의 색·숫자·방향까지. 가입 없음." />
   <link rel="canonical" href="https://odaengmwo.com/fortune.html" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="오땡뭐!" />
@@ -25,7 +25,7 @@
 <body>
   <main class="doc fortune-page">
     <nav class="tabs" aria-label="오땡뭐 메뉴">
-      <a href="/" class="tab">🍚 뭐 먹지</a>
+      <a href="/" class="tab">🍚 오늘 뭐 먹지</a>
       <a href="/fortune.html" class="tab on" aria-current="page">🔮 오늘의 운세</a>
     </nav>
     <p class="mark"><a href="/">오땡뭐!</a></p>
@@ -44,12 +44,15 @@
       <p class="f-date" id="f-date"></p>
       <p class="f-score"><span id="f-stars"></span> <b id="f-num"></b></p>
       <p class="f-total" id="f-total"></p>
-      <dl class="f-list">
-        <div><dt>💰 금전운</dt><dd id="f-money"></dd></div>
-        <div><dt>💗 애정운</dt><dd id="f-love"></dd></div>
-        <div><dt>💼 일·공부</dt><dd id="f-work"></dd></div>
-        <div><dt>🍀 건강운</dt><dd id="f-health"></dd></div>
-      </dl>
+      <h2 class="f-h">분야별 운세</h2>
+      <div class="f-areas" id="f-areas"></div>
+      <h2 class="f-h">시간대별 흐름</h2>
+      <ul class="f-times">
+        <li><b>🌅 오전</b><span id="f-morning"></span></li>
+        <li><b>☀️ 오후</b><span id="f-afternoon"></span></li>
+        <li><b>🌙 저녁</b><span id="f-evening"></span></li>
+      </ul>
+      <p class="f-caution"><b>⚠️ 오늘 조심할 것</b><span id="f-caution"></span></p>
       <div class="f-menu">
         <p class="f-menu-label">오늘의 행운의 아이템</p>
         <p class="f-menu-name"><span id="f-menu-em" aria-hidden="true"></span> <b id="f-menu-name"></b></p>
@@ -60,6 +63,7 @@
         <li><span>행운의 숫자</span><b id="f-number"></b></li>
         <li><span>행운의 방향</span><b id="f-dir"></b></li>
       </ul>
+      <p class="f-quote" id="f-quote"></p>
       <p class="b-share"><button id="f-share" type="button">내 운세 공유하기</button></p>
     </section>
 
@@ -97,15 +101,22 @@
         const f = OdFortune.make(m, d);
         cur = { m, d, f };
         const now = new Date();
-        $("#f-date").textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${m}월 ${d}일생`;
+        $("#f-date").textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${m}월 ${d}일생 · ${f.zodiac}`;
         $("#f-stars").textContent = "★".repeat(f.stars) + "☆".repeat(5 - f.stars);
         $("#f-stars").setAttribute("aria-label", `별 ${f.stars}개`);
         $("#f-num").textContent = `${f.score}점`;
         $("#f-total").textContent = f.total;
-        $("#f-money").textContent = f.money;
-        $("#f-love").textContent = f.love;
-        $("#f-work").textContent = f.work;
-        $("#f-health").textContent = f.health;
+        const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+        $("#f-areas").innerHTML = f.areas.map((a) => `
+          <div class="f-area">
+            <p class="f-area-head"><b>${esc(a.label)}</b><span class="f-area-stars" aria-label="별 ${a.stars}개">${"★".repeat(a.stars)}${"☆".repeat(5 - a.stars)}</span></p>
+            <p class="f-area-text">${esc(a.text)}</p>
+          </div>`).join("");
+        $("#f-morning").textContent = f.times.morning;
+        $("#f-afternoon").textContent = f.times.afternoon;
+        $("#f-evening").textContent = f.times.evening;
+        $("#f-caution").textContent = f.caution;
+        $("#f-quote").textContent = `“${f.quote}”`;
         $("#f-menu-em").textContent = f.item.em;
         $("#f-menu-name").textContent = f.item.name;
         $("#f-menu-why").textContent = f.item.why;

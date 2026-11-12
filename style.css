@@ -386,11 +386,7 @@ main.doc .tabs a.tab.on { color: var(--bg); }
 .f-score { margin: 6px 0 8px !important; font-size: 20px; color: var(--accent-text); letter-spacing: 1px; }
 .f-score b { color: var(--fg); font-size: 16px; letter-spacing: 0; margin-left: 4px; }
 .f-total { font-size: 17px; font-weight: 700; line-height: 1.55; word-break: keep-all; }
-.f-list { margin: 14px 0; display: grid; gap: 8px; }
-.f-list div { display: grid; grid-template-columns: 76px 1fr; gap: 8px; }
-.f-list dt { font-weight: 700; font-size: 14px; }
-.f-list dd { margin: 0; font-size: 14px; word-break: keep-all; }
-.f-menu { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; display: grid; gap: 4px; }
+.f-menu { margin-top: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; display: grid; gap: 4px; }
 .f-menu-label { color: var(--muted); font-size: 13px; }
 .f-menu-name { font-size: 24px; }
 .f-menu-why { color: var(--muted); font-size: 14px; margin-bottom: 8px !important; word-break: keep-all; }
@@ -399,3 +395,14 @@ main.doc .tabs a.tab.on { color: var(--bg); }
 .f-lucky span { color: var(--muted); font-size: 12px; }
 .f-lucky b { display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 15px; }
 .f-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); display: inline-block; }
+.f-h { font-size: 14px !important; color: var(--muted); margin: 18px 0 8px !important; }
+.f-areas { display: grid; gap: 8px; }
+.f-area { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.f-area-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.f-area-stars { color: var(--accent-text); letter-spacing: 1px; font-size: 14px; }
+.f-area-text { font-size: 14px; margin-top: 3px !important; word-break: keep-all; line-height: 1.55; }
+.f-times { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.f-times li { display: grid; grid-template-columns: 64px 1fr; gap: 6px; font-size: 14px; max-width: none; word-break: keep-all; }
+.f-caution { margin: 16px 0 14px !important; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; display: grid; gap: 2px; word-break: keep-all; }
+.f-quote { text-align: center; font-weight: 700; margin: 16px 0 12px !important; word-break: keep-all; }
+@media (max-width: 359px) { .tab { padding: 6px 8px; font-size: 12px; } .tabs { gap: 4px; } }

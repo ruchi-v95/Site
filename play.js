@@ -311,6 +311,7 @@
   }
 
   renderChips();
+  OdChips.row($("#p-chips"));
   const initLocPromise = initLoc();
   try { if (new URLSearchParams(location.search).get("from") === "share") track("from_share"); } catch {}
 })();

@@ -421,7 +421,9 @@ main.doc .tabs a.tab.on { color: var(--bg); }
 .p-loc p { margin: 0; font-size: 14px; word-break: keep-all; }
 .p-loc .where button { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; cursor: pointer; }
 main.doc .p-mode { margin: 0 0 10px; }
-.p-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.p-chips { gap: 6px; }
+main.play-page .chip-line { margin-bottom: 16px; }
+main.play-page.talking .chip-line { margin-bottom: 0; }
 .p-wait { text-align: center; color: var(--muted); padding: 24px 0; word-break: keep-all; }
 .p-spin { font-size: 20px; font-weight: 800; color: var(--fg); }
 main.doc .p-pick h2 { margin: 2px 0 6px; }
@@ -452,8 +454,14 @@ main.play-page.talking .p-loc { margin: 8px 0 12px; padding: 10px 12px; }
 main.play-page.talking #p-out { scroll-margin-top: 12px; }
 main.play-page.talking .p-dock { position: sticky; bottom: 0; z-index: 5; background: var(--bg); margin-top: 16px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
 main.play-page.talking .p-dock .p-mode { margin: 0 0 8px; }
-main.play-page.talking .p-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
-main.play-page.talking .p-chips::-webkit-scrollbar { display: none; }
-main.play-page.talking .p-chips .chip { flex: none; }
 .p-chips .chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-@media (min-width: 700px) { main.play-page.talking .p-chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; } }
+
+/* 칩 줄 공통 (chips.js): 한 줄 가로 스크롤 + 오른쪽 더보기 → 펼치면 여러 줄로 전부 */
+.chip-line { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.chip-line > .chips { flex: 1; min-width: 0; }
+.chips.open { flex-wrap: wrap; overflow: visible; cursor: auto; }
+.chip-more { flex: none; align-self: center; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 8px 4px; cursor: pointer; white-space: nowrap; }
+.chip-more::after { content: " ▾"; font-size: 10px; }
+.chip-line.open .chip-more { align-self: flex-end; }
+.chip-line.open .chip-more::after { content: " ▴"; }
+.chip-more[hidden] { display: none; }

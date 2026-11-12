@@ -526,6 +526,7 @@
 
   function setLoc(next, label) {
     loc = next;
+    OdLoc.save(next, label); // 오늘 뭐하지와 같이 쓴다 (loc.js)
     locName = label || "내 위치";
     usingFallback = false;
     locbar.hidden = true;
@@ -617,6 +618,9 @@
   }
 
   async function initLocation() {
+    // 다른 탭(오늘 뭐하지)에서 이미 잡은 위치가 있으면 다시 묻지 않고 그대로 쓴다
+    const saved = OdLoc.get();
+    if (saved) { geoFailed = false; setLoc({ x: saved.x, y: saved.y }, saved.label); watchPermission(); return; }
     let state = "prompt";
     try {
       if (navigator.permissions) state = (await navigator.permissions.query({ name: "geolocation" })).state;

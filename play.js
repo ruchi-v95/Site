@@ -38,6 +38,7 @@
   function setLoc(next, label, opts = {}) {
     loc = next; locName = label || "내 위치";
     precise = !!opts.precise;
+    if (precise || (manual && label)) OdLoc.save(next, precise ? null : label); // 오늘 뭐 먹지와 같이 쓴다 (loc.js)
     locText.textContent = label ? `${opts.help ? "" : "📍 "}${label} 근처에서 찾고 있어요.` : "내 위치 근처에서 찾고 있어요.";
     if (opts.help) helpLink();
     if (!label) placeName(next);
@@ -128,21 +129,39 @@
     if (err !== "dismissed") helpLink();
     showBtn(true);
     showWhere(true);
-    if (!loc) roughLoc(null);
-    else locText.append(` 지금은 ${locName} 근처에서 찾고 있어요.`);
+    if (!loc) return roughLoc(null);
+    locText.append(` 지금은 ${locName} 근처에서 찾고 있어요.`);
+  }
+
+  // 기기 위치 가져오기. PC는 위치를 잡는 데 몇 초 걸리는 일이 많아서 10초까지 기다리고,
+  // 그래도 답이 없으면(허용 창을 그냥 둔 경우 등) 대략 위치로 먼저 찾고 나중에 오면 바꾼다.
+  async function locate() {
+    locText.textContent = "위치를 확인하고 있어요…";
+    const ask = geo(20000);
+    const g = await within(ask, 10000);
+    if (g && !g.err) return setLoc(g, null, { precise: true });
+    if (g && g.err) return failMsg(g.err);
+    await roughLoc(WHY.wait);
+    ask.then((late) => {
+      if (manual || !late) return;
+      if (late.err) failMsg(late.err);
+      else setLoc(late, null, { precise: true });
+    });
   }
 
   async function initLoc() {
-    const ask = geo(15000);
-    const g = await within(ask, 4000);
-    if (g && !g.err) return setLoc(g, null, { precise: true });
-    if (g && g.err) return failMsg(g.err);
-    // 허용 창이 떠 있는 채로 답이 없다: 일단 대략 위치로 찾고, 나중에 허용하면 바꾼다
-    await roughLoc(WHY.wait);
-    const late = await ask;
-    if (manual || !late) return;
-    if (late.err) failMsg(late.err);
-    else setLoc(late, null, { precise: true });
+    // 다른 탭(오늘 뭐 먹지)에서 이미 잡은 위치가 있으면 다시 묻지 않고 그대로 쓴다
+    const saved = OdLoc.get();
+    if (saved) { manual = !!saved.label; return setLoc({ x: saved.x, y: saved.y }, saved.label, { precise: !saved.label }); }
+    // 뭐 먹지와 같은 규칙: 이미 허용했으면 바로 가져오고, 아직 안 물어봤으면 버튼을 누를 때 묻는다.
+    // (페이지가 열리자마자 물으면 크롬이 허용 창을 조용히 숨기거나 막는 경우가 있다)
+    let state = "prompt";
+    try { if (navigator.permissions) state = (await navigator.permissions.query({ name: "geolocation" })).state; } catch {}
+    if (state === "granted") return locate();
+    if (state === "denied") return failMsg("denied");
+    locText.textContent = "놀거리 버튼을 누르면 내 위치를 물어볼게요. 동네 이름으로 찾아도 돼요.";
+    showBtn(true);
+    showWhere(true);
   }
 
   locBtn.addEventListener("click", async () => {
@@ -160,7 +179,7 @@
       const st = await navigator.permissions.query({ name: "geolocation" });
       st.onchange = async () => {
         if (st.state !== "granted" || manual) return;
-        const g = await geo(15000);
+        const g = await geo(20000);
         if (g && !g.err) setLoc(g, null, { precise: true });
       };
     } catch {}
@@ -240,7 +259,8 @@
     const out = $("#p-out");
     out.innerHTML = `<p class="p-wait">고르는 중…</p>`;
     out.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (!loc) await within(initLocPromise, 6000);
+    if (!loc) await within(initLocPromise, 12000);
+    if (!loc) await within(locate(), 14000); // 아직 안 물어본 상태: 버튼을 누른 지금 묻는다
     if (!loc) setLoc(FALLBACK, "위치를 몰라 강남역", { help: true });
     try {
       // 종류가 여러 개면 섞어서 최대 5종류를 한 번에 검색하고, 종류별로 돌아가며 한 곳씩 뽑는다

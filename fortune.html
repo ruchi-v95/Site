@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>오늘의 운세 무료, 생일로 보는 오늘 운세와 행운의 메뉴 | 오땡뭐!</title>
+  <meta name="description" content="생일만 넣으면 오늘의 운세를 무료로 볼 수 있어요. 총운·금전운·애정운·일운과 오늘의 행운의 메뉴, 행운의 색·숫자·방향까지. 가입 없음." />
+  <link rel="canonical" href="https://odaengmwo.com/fortune.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="오땡뭐!" />
+  <meta property="og:url" content="https://odaengmwo.com/fortune.html" />
+  <meta property="og:title" content="오늘의 운세, 그리고 행운의 메뉴 | 오땡뭐!" />
+  <meta property="og:description" content="생일만 넣으면 오늘의 운세와 행운의 메뉴를 알려드려요. 무료, 가입 없음." />
+  <meta property="og:image" content="https://odaengmwo.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"오땡뭐! 오늘의 운세","url":"https://odaengmwo.com/fortune.html","applicationCategory":"LifestyleApplication","operatingSystem":"Web","inLanguage":"ko","description":"생일로 보는 오늘의 운세와 행운의 메뉴. 무료, 가입 없음.","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/theme.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7637538532720632" crossorigin="anonymous"></script>
+</head>
+<body>
+  <main class="doc fortune-page">
+    <nav class="tabs" aria-label="오땡뭐 메뉴">
+      <a href="/" class="tab">🍚 뭐 먹지</a>
+      <a href="/fortune.html" class="tab on" aria-current="page">🔮 오늘의 운세</a>
+    </nav>
+    <p class="mark"><a href="/">오땡뭐!</a></p>
+    <h1>오늘의 운세<span class="dot">?</span></h1>
+    <p class="f-lead">생일만 넣으면 오늘 하루 운세와 <b>행운의 메뉴</b>를 알려드려요.</p>
+
+    <form id="f-form" class="f-form" autocomplete="off">
+      <label>생일
+        <select id="f-month" aria-label="태어난 달"></select>
+        <select id="f-day" aria-label="태어난 날"></select>
+      </label>
+      <button type="submit" class="b-btn primary">오늘 운세 보기</button>
+    </form>
+
+    <section id="f-card" class="f-card" hidden aria-live="polite">
+      <p class="f-date" id="f-date"></p>
+      <p class="f-score"><span id="f-stars"></span> <b id="f-num"></b></p>
+      <p class="f-total" id="f-total"></p>
+      <dl class="f-list">
+        <div><dt>💰 금전운</dt><dd id="f-money"></dd></div>
+        <div><dt>💗 애정운</dt><dd id="f-love"></dd></div>
+        <div><dt>💼 일·공부</dt><dd id="f-work"></dd></div>
+      </dl>
+      <div class="f-menu">
+        <p class="f-menu-label">오늘의 행운의 메뉴</p>
+        <p class="f-menu-name"><span id="f-menu-em" aria-hidden="true"></span> <b id="f-menu-name"></b></p>
+        <p class="f-menu-why" id="f-menu-why"></p>
+        <a id="f-find" class="b-btn primary" href="/">근처 가게 찾기</a>
+      </div>
+      <ul class="f-lucky">
+        <li><span>행운의 색</span><b><i id="f-color-dot" class="f-dot"></i><span id="f-color"></span></b></li>
+        <li><span>행운의 숫자</span><b id="f-number"></b></li>
+        <li><span>행운의 방향</span><b id="f-dir"></b></li>
+      </ul>
+      <p class="b-share"><button id="f-share" type="button">내 운세 공유하기</button></p>
+    </section>
+
+    <p class="b-note">재미로 보는 운세예요. 같은 날 같은 생일이면 결과가 같아서 친구와 비교해 볼 수 있어요. 생일은 이 기기에만 저장돼요.</p>
+    <p class="doc-back"><a href="/">오땡뭐! 뭐 먹지로 가기</a></p>
+  </main>
+  <script src="/fortune-data.js"></script>
+  <script>
+    (() => {
+      const $ = (s) => document.querySelector(s);
+      const KEY = "wmm.birth";
+      const track = (e) => { try { navigator.sendBeacon && navigator.sendBeacon(`/api/stat?e=${e}`); } catch {} };
+      const mSel = $("#f-month"), dSel = $("#f-day");
+      mSel.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i + 1}월</option>`).join("");
+      function fillDays() {
+        const last = new Date(2024, Number(mSel.value), 0).getDate(); // 윤년 기준이라 2월 29일도 고를 수 있다
+        const keep = Math.min(Number(dSel.value) || 1, last);
+        dSel.innerHTML = Array.from({ length: last }, (_, i) => `<option value="${i + 1}">${i + 1}일</option>`).join("");
+        dSel.value = String(keep);
+      }
+      mSel.onchange = fillDays;
+
+      // 공유 링크(?b=MMDD)로 들어오면 그 생일, 아니면 저장한 생일
+      const q = new URLSearchParams(location.search).get("b");
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
+      const fromLink = /^\d{4}$/.test(q || "") ? { m: Number(q.slice(0, 2)), d: Number(q.slice(2)) } : null;
+      const start = fromLink || saved;
+      mSel.value = String(start && start.m >= 1 && start.m <= 12 ? start.m : 1);
+      fillDays();
+      if (start && start.d) dSel.value = String(Math.min(start.d, dSel.options.length));
+
+      let cur = null;
+      function show() {
+        const m = Number(mSel.value), d = Number(dSel.value);
+        const f = OdFortune.make(m, d);
+        cur = { m, d, f };
+        const now = new Date();
+        $("#f-date").textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${m}월 ${d}일생`;
+        $("#f-stars").textContent = "★".repeat(f.stars) + "☆".repeat(5 - f.stars);
+        $("#f-stars").setAttribute("aria-label", `별 ${f.stars}개`);
+        $("#f-num").textContent = `${f.score}점`;
+        $("#f-total").textContent = f.total;
+        $("#f-money").textContent = f.money;
+        $("#f-love").textContent = f.love;
+        $("#f-work").textContent = f.work;
+        $("#f-menu-em").textContent = f.menu.em;
+        $("#f-menu-name").textContent = f.menu.name;
+        $("#f-menu-why").textContent = f.menu.why;
+        $("#f-find").textContent = `근처 ${f.menu.name} 가게 찾기`;
+        $("#f-find").href = `/?pick=${encodeURIComponent(f.menu.name)}&from=fortune`;
+        $("#f-color").textContent = f.color[0];
+        $("#f-color-dot").style.background = f.color[1];
+        $("#f-number").textContent = f.number;
+        $("#f-dir").textContent = f.dir;
+        $("#f-card").hidden = false;
+      }
+
+      $("#f-form").onsubmit = (e) => {
+        e.preventDefault();
+        try { localStorage.setItem(KEY, JSON.stringify({ m: Number(mSel.value), d: Number(dSel.value) })); } catch {}
+        show();
+        track("fortune");
+        $("#f-card").scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+
+      $("#f-share").onclick = async () => {
+        if (!cur) return;
+        const b = String(cur.m).padStart(2, "0") + String(cur.d).padStart(2, "0");
+        const url = `https://odaengmwo.com/fortune.html?b=${b}&from=share`;
+        const text = `오늘 내 운세 ${cur.f.score}점! 행운의 메뉴는 ${cur.f.menu.em} ${cur.f.menu.name}. 너도 확인해 봐`;
+        track("fortune_share");
+        try {
+          if (navigator.share) return await navigator.share({ title: "오늘의 운세 | 오땡뭐!", text, url });
+        } catch (e) { if (e && e.name === "AbortError") return; }
+        try { await navigator.clipboard.writeText(`${text}\n${url}`); $("#f-share").textContent = "링크를 복사했어요"; }
+        catch { prompt("이 링크를 복사해 주세요", url); }
+      };
+
+      if (new URLSearchParams(location.search).get("from") === "share") track("from_share");
+      // 생일을 이미 알면 바로 보여준다
+      if (start) show();
+    })();
+  </script>
+</body>
+</html>

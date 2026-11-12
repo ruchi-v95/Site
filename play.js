@@ -41,6 +41,7 @@
     locText.textContent = label ? `${label} 근처에서 찾고 있어요.` : "내 위치 근처에서 찾고 있어요.";
     if (opts.help) helpLink();
     showBtn(!precise);
+    showWhere(!(precise || manual));
     if (cur) { cur.shown.clear(); cur.pool.clear(); }
     loadWeather();
   }
@@ -49,6 +50,13 @@
     locBtn.hidden = !on || !!geoEl;
     if (geoEl) geoEl.style.display = on ? "" : "none";
   }
+  // 동네 입력칸: 위치가 잡혀 있으면 숨기고 '다른 곳에서 찾기'를 눌렀을 때만 연다
+  const whereForm = $("#p-where"), otherBtn = $("#p-other");
+  function showWhere(open) {
+    whereForm.hidden = !open;
+    otherBtn.hidden = open;
+  }
+  otherBtn.onclick = () => { showWhere(true); $("#p-where-q").focus(); };
   function helpLink() {
     const a = document.createElement("a");
     a.href = "/guide/location.html"; a.target = "_blank"; a.rel = "noopener"; a.className = "help-link";
@@ -97,6 +105,7 @@
     loc = next; precise = false; locName = name;
     if (cur) { cur.shown.clear(); cur.pool.clear(); }
     locText.append(` 지금은 ${name} 근처에서 찾고 있어요.`);
+    showWhere(true);
     loadWeather();
   }
   const WHY = { denied: "위치가 차단돼 있어서", dismissed: "위치 허용을 안 해서", unavailable: "이 기기에서 위치를 못 찾아서", wait: "위치 허용을 기다리는 동안" };
@@ -107,6 +116,7 @@
       : "이 기기에서 위치를 찾지 못했어요. PC라면 위치 서비스가 꺼져 있을 수 있어요. 동네 이름을 입력해 주세요.";
     if (err !== "dismissed") helpLink();
     showBtn(true);
+    showWhere(true);
     if (!loc) roughLoc(null);
     else locText.append(` 지금은 ${locName} 근처에서 찾고 있어요.`);
   }

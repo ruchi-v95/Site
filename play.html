@@ -37,8 +37,9 @@
       <div class="p-loc-row">
         <p id="p-loc-text">위치를 확인하고 있어요…</p>
         <button type="button" id="p-loc-btn" class="p-loc-btn">📍 내 위치로</button>
+        <button type="button" id="p-other" class="p-other" hidden>다른 곳에서 찾기</button>
       </div>
-      <form id="p-where" class="where" autocomplete="off">
+      <form id="p-where" class="where" hidden autocomplete="off">
         <input id="p-where-q" type="text" enterkeyhint="done" placeholder="동네·역 이름 (예: 홍대입구역)" aria-label="동네나 역 이름" />
         <button type="submit">이 근처로</button>
       </form>

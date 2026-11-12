@@ -14,6 +14,8 @@ const EVENTS = new Set([
   "bingo_share", // 제철 빙고 공유하기
   "fortune",     // 오늘의 운세 보기
   "fortune_share", // 오늘의 운세 공유하기
+  "play_pick",   // 오늘 뭐하지: 놀거리 뽑기
+  "play_share",  // 오늘 뭐하지: 놀거리 공유하기
   "theme_light", "theme_dark", "theme_auto", // 화면 모드 버튼
   "game",        // 게임 열기
   "from_share",  // 공유 글의 링크로 들어옴

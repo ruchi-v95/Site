@@ -364,7 +364,9 @@ main.doc .season-actions a.on { background: var(--accent); color: var(--accent-f
 .ing-links a { display: inline-block; margin: 2px 8px 2px 0; }
 
 /* 위쪽 탭: 오땡뭐 안의 콘텐츠(뭐 먹지 / 오늘의 운세 …) */
-.tabs { display: flex; gap: 6px; padding-top: calc(10px + env(safe-area-inset-top)); padding-right: 96px; /* 오른쪽 화면 모드 버튼 자리 */ }
+.tabs { display: flex; gap: 6px; padding-top: calc(10px + env(safe-area-inset-top)); margin-right: 92px; /* 오른쪽 화면 모드 버튼 자리 */ overflow-x: auto; scrollbar-width: none; flex: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; }
 .tab { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted); text-decoration: none; background: var(--bg); white-space: nowrap; }
 .tab:hover { color: var(--fg); }
 .tab.on { background: var(--fg); border-color: var(--fg); color: var(--bg); }
@@ -375,7 +377,7 @@ main.doc .tabs a.tab { color: var(--muted); }
 main.doc .tabs a.tab.on { color: var(--bg); }
 
 /* 오늘의 운세 */
-.fortune-page h1 .dot { color: var(--accent-text); }
+.fortune-page h1 .dot, .play-page h1 .dot { color: var(--accent-text); }
 .f-lead { color: var(--muted); }
 .f-form { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 20px; }
 .f-form label { display: flex; align-items: center; gap: 8px; font-weight: 700; }
@@ -405,4 +407,19 @@ main.doc .tabs a.tab.on { color: var(--bg); }
 .f-times li { display: grid; grid-template-columns: 64px 1fr; gap: 6px; font-size: 14px; max-width: none; word-break: keep-all; }
 .f-caution { margin: 16px 0 14px !important; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; display: grid; gap: 2px; word-break: keep-all; }
 .f-quote { text-align: center; font-weight: 700; margin: 16px 0 12px !important; word-break: keep-all; }
-@media (max-width: 359px) { .tab { padding: 6px 8px; font-size: 12px; } .tabs { gap: 4px; } }
+@media (max-width: 359px) { .tab { font-size: 11.5px; } }
+
+/* 오늘 뭐하지 */
+.p-loc { background: var(--card); border-radius: 14px; padding: 12px 14px; margin: 12px 0 14px; display: grid; gap: 8px; }
+.p-loc p { margin: 0; font-size: 14px; word-break: keep-all; }
+.p-loc .where button { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; cursor: pointer; }
+main.doc .p-mode { margin: 0 0 10px; }
+.p-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.p-wait { text-align: center; color: var(--muted); padding: 24px 0; word-break: keep-all; }
+.p-spin { font-size: 20px; font-weight: 800; color: var(--fg); }
+main.doc .p-pick h2 { margin: 2px 0 6px; }
+/* 휴대폰: 탭 3개를 화면 모드 버튼 아래 한 줄에 꽉 채워서 */
+@media (max-width: 520px) {
+  .tabs { margin-right: 0; padding-top: calc(50px + env(safe-area-inset-top)); gap: 4px; }
+  .tab { flex: 1 1 0; text-align: center; padding: 7px 2px; font-size: 12.5px; }
+}

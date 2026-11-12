@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>오늘 뭐하지? 내 주변 놀거리 랜덤 추천, 데이트·친구랑 갈 곳 | 오땡뭐!</title>
+  <meta name="description" content="오늘 뭐하지 고민될 때 버튼 하나로 내 주변 놀거리를 골라드려요. 방탈출, 보드게임카페, 코인노래방, 볼링장, 영화관, 공원, 전시까지. 비 오는 날엔 실내 위주로. 무료, 가입 없음." />
+  <link rel="canonical" href="https://odaengmwo.com/play.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="오땡뭐!" />
+  <meta property="og:url" content="https://odaengmwo.com/play.html" />
+  <meta property="og:title" content="오늘 뭐하지? 내 주변 놀거리 랜덤 추천 | 오땡뭐!" />
+  <meta property="og:description" content="방탈출, 보드게임, 노래방, 볼링, 영화, 공원… 버튼 하나로 오늘 갈 곳을 골라드려요." />
+  <meta property="og:image" content="https://odaengmwo.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"오땡뭐! 오늘 뭐하지","url":"https://odaengmwo.com/play.html","applicationCategory":"LifestyleApplication","operatingSystem":"Web","inLanguage":"ko","description":"내 주변 놀거리(방탈출, 보드게임카페, 노래방, 볼링장, 영화관, 공원, 전시)를 랜덤으로 골라주는 무료 웹앱. 가입 없음.","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/theme.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7637538532720632" crossorigin="anonymous"></script>
+</head>
+<body>
+  <main class="doc play-page">
+    <nav class="tabs" aria-label="오땡뭐 메뉴">
+      <a href="/" class="tab">🍚 오늘 뭐 먹지</a>
+      <a href="/play.html" class="tab on" aria-current="page">🎡 오늘 뭐하지</a>
+      <a href="/fortune.html" class="tab">🔮 오늘의 운세</a>
+    </nav>
+    <p class="mark"><a href="/">오땡뭐!</a></p>
+    <h1>오늘 뭐하지<span class="dot">?</span></h1>
+    <p class="f-lead" id="p-lead">버튼 하나 누르면 내 주변 놀거리를 골라드려요.</p>
+
+    <div class="p-loc" id="p-loc">
+      <p id="p-loc-text">위치를 확인하고 있어요…</p>
+      <form id="p-where" class="where" autocomplete="off">
+        <input id="p-where-q" type="text" enterkeyhint="done" placeholder="동네·역 이름 (예: 홍대입구역)" aria-label="동네나 역 이름" />
+        <button type="submit">이 근처로</button>
+      </form>
+    </div>
+
+    <div class="mode p-mode" role="radiogroup" aria-label="거리">
+      <button type="button" role="radio" data-r="2000" aria-checked="true" class="on">🚶 가까이 2km</button>
+      <button type="button" role="radio" data-r="5000" aria-checked="false">🚗 멀리 5km</button>
+    </div>
+    <div class="p-chips" id="p-chips" aria-label="놀거리 종류"></div>
+
+    <section id="p-out" aria-live="polite"></section>
+
+    <p class="b-note">장소는 카카오맵 정보예요. 영업시간이나 예약 여부는 '상세 보기'에서 꼭 확인하세요.</p>
+  </main>
+  <script src="/play.js"></script>
+</body>
+</html>

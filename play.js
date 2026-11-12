@@ -38,12 +38,23 @@
   function setLoc(next, label, opts = {}) {
     loc = next; locName = label || "내 위치";
     precise = !!opts.precise;
-    locText.textContent = label ? `${label} 근처에서 찾고 있어요.` : "내 위치 근처에서 찾고 있어요.";
+    locText.textContent = label ? `${opts.help ? "" : "📍 "}${label} 근처에서 찾고 있어요.` : "내 위치 근처에서 찾고 있어요.";
     if (opts.help) helpLink();
+    if (!label) placeName(next);
     showBtn(!precise);
     showWhere(!(precise || manual));
     if (cur) { cur.shown.clear(); cur.pool.clear(); }
     loadWeather();
+  }
+  // 내 위치면 동 이름으로 보여준다: "📍 역삼1동에서 찾고 있어요"
+  async function placeName(at) {
+    try {
+      const r = await fetch(`/api/where?x=${at.x.toFixed(3)}&y=${at.y.toFixed(3)}`);
+      const d = r.ok ? await r.json() : null;
+      if (!d || !d.name || loc !== at) return; // 그 사이 위치가 바뀌었으면 무시
+      locName = d.name;
+      locText.textContent = `📍 ${d.name}에서 찾고 있어요.`;
+    } catch {}
   }
   // 위치 버튼은 정확한 내 위치를 쓰는 중이 아닐 때만 보인다 (크롬 새 버전은 브라우저가 그리는 버튼)
   function showBtn(on) {

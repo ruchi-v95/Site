@@ -11,6 +11,9 @@
   function apply(mode) {
     if (mode === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", mode);
     var dark = mode === "dark" || (mode === "auto" && sys && sys.matches);
+    // 브라우저 강제 다크 모드 끄기: 라이트일 땐 'only light'라고 알려야 라이트가 그대로 보인다
+    var cs = document.querySelector('meta[name="color-scheme"]');
+    if (cs) cs.content = dark ? "dark" : "only light";
     var metas = document.querySelectorAll('meta[name="theme-color"]');
     for (var i = 0; i < metas.length; i++) {
       var m = metas[i];

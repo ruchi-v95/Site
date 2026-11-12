@@ -7,7 +7,8 @@
   --accent: #ff5a36;
   --accent-fg: #ffffff;
   --accent-text: #c53a16; /* 밝은 배경 위 주황 글자 (대비 4.5 이상) */
-  color-scheme: light;
+  /* only: 휴대폰 브라우저의 '웹페이지 강제 다크 모드'가 라이트 화면을 멋대로 어둡게 칠하지 않게 */
+  color-scheme: only light;
   --bubble-me: #1a1a1a;
   --bubble-me-fg: #ffffff;
 }

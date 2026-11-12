@@ -411,6 +411,12 @@ main.doc .tabs a.tab.on { color: var(--bg); }
 
 /* 오늘 뭐하지 */
 .p-loc { background: var(--card); border-radius: 14px; padding: 12px 14px; margin: 12px 0 14px; display: grid; gap: 8px; }
+.p-loc-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.p-loc-row p { flex: 1; min-width: 180px; }
+.p-loc-btn { flex: none; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-fg); font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; cursor: pointer; }
+.p-loc-btn[hidden] { display: none; }
+.p-loc-btn:disabled { opacity: .6; }
+.p-loc .geo-el { flex: none; border-radius: 10px; }
 .p-loc p { margin: 0; font-size: 14px; word-break: keep-all; }
 .p-loc .where button { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; font-weight: 700; padding: 9px 12px; cursor: pointer; }
 main.doc .p-mode { margin: 0 0 10px; }

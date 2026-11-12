@@ -34,7 +34,10 @@
     <p class="f-lead" id="p-lead">버튼 하나 누르면 내 주변 놀거리를 골라드려요.</p>
 
     <div class="p-loc" id="p-loc">
-      <p id="p-loc-text">위치를 확인하고 있어요…</p>
+      <div class="p-loc-row">
+        <p id="p-loc-text">위치를 확인하고 있어요…</p>
+        <button type="button" id="p-loc-btn" class="p-loc-btn">📍 내 위치로</button>
+      </div>
       <form id="p-where" class="where" autocomplete="off">
         <input id="p-where-q" type="text" enterkeyhint="done" placeholder="동네·역 이름 (예: 홍대입구역)" aria-label="동네나 역 이름" />
         <button type="submit">이 근처로</button>

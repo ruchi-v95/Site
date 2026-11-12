@@ -29,31 +29,122 @@
   let cur = null; // { chip, queries, shown:Set, pool:Map(query→places) }
 
   // ---------- 위치 ----------
-  const locText = $("#p-loc-text");
-  function setLoc(next, label) {
-    loc = next;
-    locText.textContent = label ? `${label} 근처에서 찾고 있어요. 다른 곳이면 아래에 입력하세요.` : "내 위치 근처에서 찾고 있어요.";
+  // 위치 허용 창에 답하지 않아도 화면이 멈추지 않게: 4초 안에 못 받으면 인터넷 접속 위치(없으면 강남역)로 먼저 찾고,
+  // 나중에 허용하면 그때 내 위치로 바꾼다. 동네를 직접 입력했으면 그걸 우선한다.
+  const locText = $("#p-loc-text"), locBtn = $("#p-loc-btn");
+  let manual = false; // 동네를 직접 입력했는지
+  let precise = false; // 기기 위치(GPS 등)를 쓰는 중인지
+  let locName = "";
+  function setLoc(next, label, opts = {}) {
+    loc = next; locName = label || "내 위치";
+    precise = !!opts.precise;
+    locText.textContent = label ? `${label} 근처에서 찾고 있어요.` : "내 위치 근처에서 찾고 있어요.";
+    if (opts.help) helpLink();
+    showBtn(!precise);
     if (cur) { cur.shown.clear(); cur.pool.clear(); }
     loadWeather();
   }
-  function geo() {
+  // 위치 버튼은 정확한 내 위치를 쓰는 중이 아닐 때만 보인다 (크롬 새 버전은 브라우저가 그리는 버튼)
+  function showBtn(on) {
+    locBtn.hidden = !on || !!geoEl;
+    if (geoEl) geoEl.style.display = on ? "" : "none";
+  }
+  function helpLink() {
+    const a = document.createElement("a");
+    a.href = "/guide/location.html"; a.target = "_blank"; a.rel = "noopener"; a.className = "help-link";
+    a.textContent = "위치 켜는 법";
+    locText.append(" ", a);
+  }
+  // 크롬 144+의 <geolocation> 버튼: 전에 '차단'했어도 누르면 다시 허용 창을 띄워준다. 없으면 일반 버튼.
+  const geoEl = "HTMLGeolocationElement" in window ? document.createElement("geolocation") : null;
+  if (geoEl) {
+    geoEl.className = "geo-el";
+    geoEl.addEventListener("location", () => {
+      if (geoEl.position) { manual = false; setLoc({ x: geoEl.position.coords.longitude, y: geoEl.position.coords.latitude }, null, { precise: true }); }
+      else if (geoEl.error) failMsg(geoEl.error.code === 1 ? "denied" : "unavailable");
+    });
+    locBtn.after(geoEl);
+    locBtn.hidden = true;
+  }
+
+  function geo(timeout) {
     return new Promise((res) => {
-      if (!navigator.geolocation) return res(null);
-      navigator.geolocation.getCurrentPosition((p) => res({ x: p.coords.longitude, y: p.coords.latitude }), () => res(null), { timeout: 12000, maximumAge: 600000 });
+      if (!navigator.geolocation) return res({ err: "unavailable" });
+      navigator.geolocation.getCurrentPosition(
+        (p) => res({ x: p.coords.longitude, y: p.coords.latitude }),
+        async (e) => {
+          let err = e && e.code === 1 ? "denied" : "unavailable";
+          if (err === "denied") try { if ((await navigator.permissions.query({ name: "geolocation" })).state === "prompt") err = "dismissed"; } catch {}
+          res({ err });
+        },
+        { timeout, maximumAge: 600000 }
+      );
     });
   }
+  const within = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
   async function ipLoc() {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 3000);
     try { const r = await fetch("/api/ipgeo", { signal: ctrl.signal }); const d = r.ok ? await r.json() : null; return d && d.x ? d : null; }
     catch { return null; } finally { clearTimeout(t); }
   }
-  async function initLoc() {
-    const g = await geo();
-    if (g) return setLoc(g);
+  // why가 없으면 안내 문구는 그대로 두고 '지금은 어디 기준인지'만 덧붙인다
+  async function roughLoc(why) {
     const ip = await ipLoc();
-    if (ip) return setLoc({ x: ip.x, y: ip.y }, `${ip.name || "인터넷 접속 위치"}(대략)`);
-    setLoc(FALLBACK, "위치를 몰라 강남역");
+    if (manual || (precise && why)) return;
+    const next = ip ? { x: ip.x, y: ip.y } : FALLBACK;
+    const name = ip ? `인터넷 접속 위치(${ip.name || "대략"})` : "강남역";
+    if (why) return setLoc(next, `${why} ${name}`, { help: true });
+    loc = next; precise = false; locName = name;
+    if (cur) { cur.shown.clear(); cur.pool.clear(); }
+    locText.append(` 지금은 ${name} 근처에서 찾고 있어요.`);
+    loadWeather();
   }
+  const WHY = { denied: "위치가 차단돼 있어서", dismissed: "위치 허용을 안 해서", unavailable: "이 기기에서 위치를 못 찾아서", wait: "위치 허용을 기다리는 동안" };
+  function failMsg(err) {
+    locText.textContent = err === "denied"
+      ? (geoEl ? "위치가 차단돼 있어요. 위치 버튼을 누르면 다시 허용할 수 있어요. 동네 이름을 입력해도 돼요." : "브라우저에서 위치를 차단해 둔 상태예요. 주소창 왼쪽 아이콘에서 위치를 '허용'하면 바로 다시 찾아요. 동네 이름을 입력해도 돼요.")
+      : err === "dismissed" ? "위치 허용 창이 닫혔어요. 위치 버튼을 누르면 다시 물어볼게요."
+      : "이 기기에서 위치를 찾지 못했어요. PC라면 위치 서비스가 꺼져 있을 수 있어요. 동네 이름을 입력해 주세요.";
+    if (err !== "dismissed") helpLink();
+    showBtn(true);
+    if (!loc) roughLoc(null);
+    else locText.append(` 지금은 ${locName} 근처에서 찾고 있어요.`);
+  }
+
+  async function initLoc() {
+    const ask = geo(15000);
+    const g = await within(ask, 4000);
+    if (g && !g.err) return setLoc(g, null, { precise: true });
+    if (g && g.err) return failMsg(g.err);
+    // 허용 창이 떠 있는 채로 답이 없다: 일단 대략 위치로 찾고, 나중에 허용하면 바꾼다
+    await roughLoc(WHY.wait);
+    const late = await ask;
+    if (manual || !late) return;
+    if (late.err) failMsg(late.err);
+    else setLoc(late, null, { precise: true });
+  }
+
+  locBtn.addEventListener("click", async () => {
+    locBtn.disabled = true;
+    locText.textContent = "위치를 확인하는 중…";
+    const g = await geo(15000);
+    locBtn.disabled = false;
+    if (g && !g.err) { manual = false; setLoc(g, null, { precise: true }); }
+    else failMsg(g ? g.err : "unavailable");
+  });
+
+  // 주소창에서 권한을 바꾸면 새로고침 없이 반영
+  (async () => {
+    try {
+      const st = await navigator.permissions.query({ name: "geolocation" });
+      st.onchange = async () => {
+        if (st.state !== "granted" || manual) return;
+        const g = await geo(15000);
+        if (g && !g.err) setLoc(g, null, { precise: true });
+      };
+    } catch {}
+  })();
+
   $("#p-where").addEventListener("submit", async (e) => {
     e.preventDefault();
     const q = $("#p-where-q").value.trim();
@@ -63,6 +154,7 @@
       const r = await fetch(`/api/where?q=${encodeURIComponent(q)}`);
       const d = r.ok ? await r.json() : null;
       if (!d || !d.x) throw 0;
+      manual = true;
       setLoc({ x: Number(d.x), y: Number(d.y) }, d.name);
       $("#p-where-q").value = "";
     } catch { locText.textContent = `"${q}"을(를) 찾지 못했어요. 역이나 동 이름으로 다시 입력해 보세요.`; }
@@ -121,7 +213,8 @@
     const out = $("#p-out");
     out.innerHTML = `<p class="p-wait">고르는 중…</p>`;
     out.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    if (!loc) await initLocPromise;
+    if (!loc) await within(initLocPromise, 6000);
+    if (!loc) setLoc(FALLBACK, "위치를 몰라 강남역", { help: true });
     try {
       for (const query of shuffle(cur.queries).slice(0, 6)) {
         if (!cur.pool.has(query)) cur.pool.set(query, await search(query));

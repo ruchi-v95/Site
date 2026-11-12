@@ -430,3 +430,16 @@ main.doc .p-pick h2 { margin: 2px 0 6px; }
   .tabs { margin-right: 0; padding-top: calc(50px + env(safe-area-inset-top)); gap: 4px; }
   .tab { flex: 1 1 0; text-align: center; padding: 7px 2px; font-size: 12.5px; }
 }
+
+/* 오늘 뭐하지: 5곳 목록 */
+.p-count { font-size: 14px; font-weight: 700; margin: 4px 0 10px; }
+.p-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.p-list .pick { margin: 0; }
+.p-list .pick h2 { font-size: 18px; }
+.p-list .pick .actions { margin-top: 10px; }
+.p-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.p-more button { border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--fg); font: inherit; font-size: 15px; font-weight: 700; padding: 12px; cursor: pointer; }
+.p-more button[data-again] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.p-list .pick { padding: 14px 16px; }
+.p-list .pick .actions a { padding: 8px 10px; font-size: 14px; }
+.p-list .pick .actions .primary { background: var(--bg); color: var(--fg); border-color: var(--line); }

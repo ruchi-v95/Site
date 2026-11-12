@@ -219,6 +219,7 @@
     pick();
   }
 
+  const COUNT = 5;
   async function pick() {
     const out = $("#p-out");
     out.innerHTML = `<p class="p-wait">고르는 중…</p>`;
@@ -226,19 +227,31 @@
     if (!loc) await within(initLocPromise, 6000);
     if (!loc) setLoc(FALLBACK, "위치를 몰라 강남역", { help: true });
     try {
-      for (const query of shuffle(cur.queries).slice(0, 6)) {
-        if (!cur.pool.has(query)) cur.pool.set(query, await search(query));
-        const fresh = cur.pool.get(query).filter((p) => !cur.shown.has(p.id));
-        if (!fresh.length) continue;
-        const near = fresh.slice(0, 6); // 카카오 정확도순 앞쪽(많이 찾는 곳)에서
-        const p = near[Math.floor(Math.random() * near.length)];
-        cur.shown.add(p.id);
-        await spin(out, fresh.map((q) => q.place_name));
-        render(p, query);
-        track("play_pick");
+      // 종류가 여러 개면 섞어서 최대 5종류를 한 번에 검색하고, 종류별로 돌아가며 한 곳씩 뽑는다
+      const qs = shuffle(cur.queries).slice(0, COUNT);
+      await Promise.all(qs.filter((q) => !cur.pool.has(q)).map(async (q) => cur.pool.set(q, await search(q))));
+      const picks = [];
+      const taken = new Set(cur.shown);
+      for (let round = 0; picks.length < COUNT && round < COUNT; round++) {
+        for (const q of qs) {
+          if (picks.length >= COUNT) break;
+          const fresh = cur.pool.get(q).filter((p) => !taken.has(p.id));
+          if (!fresh.length) continue;
+          const near = fresh.slice(0, 8); // 카카오 정확도순 앞쪽(많이 찾는 곳)에서
+          const p = near[Math.floor(Math.random() * near.length)];
+          taken.add(p.id);
+          picks.push({ p, q });
+        }
+      }
+      if (!picks.length) {
+        out.innerHTML = `<p class="p-wait">근처 ${radius / 1000}km 안에서 더 찾을 곳이 없어요. ${radius < 5000 ? "'멀리 5km'로 바꾸거나 " : ""}다른 버튼을 눌러보세요.</p>`;
         return;
       }
-      out.innerHTML = `<p class="p-wait">근처 ${radius / 1000}km 안에서 더 찾을 곳이 없어요. ${radius < 5000 ? "'멀리 5km'로 바꾸거나 " : ""}다른 버튼을 눌러보세요.</p>`;
+      picks.forEach(({ p }) => cur.shown.add(p.id));
+      picks.sort((x, y) => (Number(x.p.distance) || 1e9) - (Number(y.p.distance) || 1e9));
+      await spin(out, qs.flatMap((q) => cur.pool.get(q).map((x) => x.place_name)));
+      render(picks);
+      track("play_pick");
     } catch {
       out.innerHTML = `<p class="p-wait">지금 장소 정보를 불러오지 못했어요. 잠시 후 다시 눌러주세요.</p>`;
     }
@@ -263,26 +276,30 @@
     return `https://map.kakao.com/link/to/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
   }
 
-  function render(p, query) {
+  function render(picks) {
     const out = $("#p-out");
-    const cat = lastCat(p) || query;
+    const items = picks.map(({ p, q }) => ({ p, cat: lastCat(p) || q }));
     out.innerHTML = `
-      <article class="pick p-pick">
-        <p class="food">오늘은 ${esc(cat)}</p>
-        <h2>${esc(p.place_name)}</h2>
-        ${meta(p) ? `<p class="meta">${esc(meta(p))}</p>` : ""}
-        <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
-        ${p.phone ? `<p class="meta"><a href="tel:${esc(p.phone)}">${esc(p.phone)}</a></p>` : ""}
-        <div class="actions">
-          <a class="primary" href="${esc(routeUrl(p))}" target="_blank" rel="noopener">길찾기</a>
-          <a href="${esc(p.place_url || routeUrl(p))}" target="_blank" rel="noopener">상세 보기</a>
-          <button type="button" data-again>다시 뽑기</button>
-          <button type="button" data-share>공유하기</button>
-        </div>
-      </article>`;
+      <p class="p-count">${esc(cur.chip.replace(/^\S+\s/, ""))} · 근처 ${items.length}곳을 골랐어요</p>
+      <ol class="p-list">${items.map(({ p, cat }) => `
+        <li class="pick p-pick">
+          <p class="food">${esc(cat)}${meta(p) ? ` · ${esc(meta(p))}` : ""}</p>
+          <h2>${esc(p.place_name)}</h2>
+          <p class="meta">${esc(p.road_address_name || p.address_name || "")}</p>
+          <div class="actions">
+            <a class="primary" href="${esc(routeUrl(p))}" target="_blank" rel="noopener">길찾기</a>
+            <a href="${esc(p.place_url || routeUrl(p))}" target="_blank" rel="noopener">상세 보기</a>
+          </div>
+        </li>`).join("")}
+      </ol>
+      <div class="p-more">
+        <button type="button" data-again>🎲 다른 ${COUNT}곳 보기</button>
+        <button type="button" data-share>공유하기</button>
+      </div>`;
     out.querySelector("[data-again]").onclick = pick;
     out.querySelector("[data-share]").onclick = async (e) => {
-      const text = `오늘 여기 어때? ${p.place_name} (${cat})\n${p.place_url || routeUrl(p)}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com/play.html?from=share`;
+      const list = items.map(({ p, cat }, i) => `${i + 1}. ${p.place_name} (${cat})\n${p.place_url || routeUrl(p)}`).join("\n");
+      const text = `오늘 여기 중에 어때?\n${list}\n\n오땡뭐!에서 골랐어요 👉 https://odaengmwo.com/play.html?from=share`;
       track("play_share");
       try { if (navigator.share) return await navigator.share({ text }); } catch (err) { if (err && err.name === "AbortError") return; }
       try { await navigator.clipboard.writeText(text); e.target.textContent = "복사했어요"; } catch { prompt("이 내용을 복사해 주세요", text); }

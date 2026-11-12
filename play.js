@@ -228,6 +228,8 @@
     let queries = CHIPS[chip];
     if (chip === "🎲 아무거나" && rainy) queries = INDOOR; // 비 오는 날 '아무거나'는 실내에서
     cur = { chip, queries, shown: new Set(), pool: new Map() };
+    // 결과 화면으로 넘어갈 때 기록을 하나 남겨서, 휴대폰 뒤로가기로 첫 화면에 돌아오게 한다
+    if (!$("main").classList.contains("talking")) try { history.pushState({ playResult: 1 }, ""); } catch {}
     $("main").classList.add("talking");
     document.querySelectorAll("#p-chips .chip").forEach((b) => b.classList.toggle("on", b.textContent === chip));
     pick();
@@ -320,6 +322,18 @@
       try { await navigator.clipboard.writeText(text); e.target.textContent = "복사했어요"; } catch { prompt("이 내용을 복사해 주세요", text); }
     };
   }
+
+  // ---------- 처음으로 ----------
+  function reset() {
+    $("main").classList.remove("talking");
+    $("#p-out").innerHTML = "";
+    cur = null;
+    document.querySelectorAll("#p-chips .chip.on").forEach((b) => b.classList.remove("on"));
+    $("#p-chips").scrollLeft = 0;
+    window.scrollTo({ top: 0 });
+  }
+  $("#p-home").onclick = () => { if (history.state && history.state.playResult) history.back(); else reset(); };
+  window.addEventListener("popstate", () => { if ($("main").classList.contains("talking")) reset(); });
 
   renderChips();
   OdChips.row($("#p-chips"));

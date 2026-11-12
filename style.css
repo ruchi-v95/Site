@@ -451,7 +451,7 @@ main.play-page.talking { padding-top: 16px; }
 main.play-page.talking .mark, main.play-page.talking #p-lead { display: none; }
 main.play-page.talking .p-h1 { font-size: 18px; margin: 4px 0 8px; }
 main.play-page.talking .p-loc { margin: 8px 0 12px; padding: 10px 12px; }
-main.play-page.talking #p-out { scroll-margin-top: 12px; }
+main.play-page.talking #p-out { scroll-margin-top: 64px; }
 main.play-page.talking .p-dock { position: sticky; bottom: 0; z-index: 5; background: var(--bg); margin-top: 16px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
 main.play-page.talking .p-dock .p-mode { margin: 0 0 8px; }
 .p-chips .chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
@@ -465,3 +465,11 @@ main.play-page.talking .p-dock .p-mode { margin: 0 0 8px; }
 .chip-line.open .chip-more { align-self: flex-end; }
 .chip-line.open .chip-more::after { content: " ▴"; }
 .chip-more[hidden] { display: none; }
+
+/* 오늘 뭐하지: 결과 화면의 '처음으로' (뭐 먹지와 같은 모양) */
+.p-home { display: none; }
+main.play-page.talking .p-head { position: sticky; top: 0; z-index: 5; background: var(--bg); text-align: center; padding: calc(6px + env(safe-area-inset-top)) 0 6px; }
+main.play-page.talking .p-home {
+  display: inline-flex; align-items: center; gap: 2px; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 8px 6px; cursor: pointer;
+}
